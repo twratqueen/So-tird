@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>圖片庫儲存測試</title>
+    <style>
+        body {
+            font-family: "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f2f4f5;
+            margin: 0;
+            padding: 2rem;
+            color: #1f2933;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+            font-size: 1.75rem;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.35);
+            padding: 24px;
+            max-width: 880px;
+            margin: 0 auto;
+        }
+
+        .input-row {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-row label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid #cbd2d9;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        button {
+            border: none;
+            border-radius: 999px;
+            padding: 0.65rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, #8ab4f8, #5a8dee);
+            color: white;
+            box-shadow: 0 10px 20px -10px rgba(66, 133, 244, 0.7);
+        }
+
+        button.secondary {
+            background: rgba(113, 128, 150, 0.14);
+            color: #334155;
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        .gallery {
+            margin-top: 2rem;
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+
+        .card {
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #f8fafc;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+        }
+
+        .card img {
+            display: block;
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .card .caption {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            background: rgba(15, 23, 42, 0.72);
+            color: white;
+        }
+
+        .card .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.55);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            color: white;
+            font-weight: 600;
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        .card:hover .overlay {
+            opacity: 1;
+        }
+
+        .storage-info {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: rgba(15, 23, 42, 0.92);
+            color: white;
+            padding: 0.9rem 1.2rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            box-shadow: 0 20px 40px -20px rgba(15, 23, 42, 0.8);
+            opacity: 0;
+            transform: translateY(-8px);
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 1200;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .context-menu {
+            position: fixed;
+            min-width: 160px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 18px 45px -30px rgba(15, 23, 42, 0.5);
+            padding: 0.35rem;
+            opacity: 0;
+            transform: scale(0.96);
+            transition: opacity 0.16s ease, transform 0.16s ease;
+            pointer-events: none;
+            z-index: 1100;
+        }
+
+        .context-menu.show {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        .context-menu button {
+            width: 100%;
+            text-align: left;
+            padding: 0.65rem 0.85rem;
+            border-radius: 9px;
+            background: none;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+
+        .context-menu button:hover {
+            background: rgba(99, 102, 241, 0.12);
+        }
+
+        .context-menu button.delete {
+            color: #dc2626;
+        }
+
+        .context-menu button.delete:hover {
+            background: rgba(248, 113, 113, 0.16);
+        }
+
+        .confirm-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 1300;
+        }
+
+        .confirm-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .confirm-dialog {
+            background: white;
+            border-radius: 16px;
+            padding: 1.75rem;
+            width: min(360px, calc(100% - 32px));
+            text-align: center;
+            transform: scale(0.93);
+            transition: transform 0.24s ease;
+        }
+
+        .confirm-overlay.show .confirm-dialog {
+            transform: scale(1);
+        }
+
+        .confirm-actions {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .warning {
+            margin-top: 1rem;
+            padding: 0.9rem 1rem;
+            background: rgba(251, 191, 36, 0.16);
+            border-radius: 12px;
+            border: 1px solid rgba(217, 119, 6, 0.35);
+            color: #b45309;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .warning.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <main class="panel">
+        <h1>📸 我的圖片庫（儲存層修正版）</h1>
+        <p>這份範例展示了如何在 Canva Code 的沙箱環境中可靠地儲存、讀取並刪除圖片。重點調整包含：
+            <strong>自動偵測可用儲存層</strong>、<strong>在 fallback 時同步清除舊資料</strong> 以及
+            <strong>避免被遮罩擋住的自訂確認視窗</strong>。</p>
+
+        <section class="input-row">
+            <label for="imageInput">選擇圖片</label>
+            <input id="imageInput" type="file" accept="image/*" multiple />
+        </section>
+
+        <section class="input-row">
+            <label for="imageName">圖片名稱（可選）</label>
+            <input id="imageName" type="text" placeholder="輸入圖片說明" />
+        </section>
+
+        <div class="actions">
+            <button id="pickImage" class="primary">上傳圖片</button>
+            <button id="clearAll" class="secondary">清除所有圖片</button>
+        </div>
+
+        <div class="storage-info" id="storageInfo">正在讀取儲存空間...</div>
+        <div class="warning" id="memoryWarning">⚠️ 因瀏覽器儲存空間不足，目前資料僅暫存於記憶體，重新整理後會消失。</div>
+
+        <section class="gallery" id="imageGallery"></section>
+    </main>
+
+    <div class="context-menu" id="contextMenu">
+        <button id="btnCopy">📋 複製連結</button>
+        <button id="btnDelete" class="delete">🗑️ 刪除此圖片</button>
+    </div>
+
+    <div class="confirm-overlay" id="confirmOverlay" role="dialog" aria-modal="true">
+        <div class="confirm-dialog">
+            <div style="font-size:2.4rem;">🗑️</div>
+            <h2 style="margin:1rem 0 0.25rem;">確定要刪除這張圖片嗎？</h2>
+            <p style="color:#64748b; font-size:0.9rem;">刪除後無法復原，且將立即從儲存空間移除。</p>
+            <div class="confirm-actions">
+                <button class="secondary" id="cancelDelete">取消</button>
+                <button class="primary" id="confirmDelete">刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+        const KEY = "imageGallery";
+
+        const imgStore = (() => {
+            const DRIVER_KEY = `${KEY}::driver`;
+            let memoryCache = [];
+            let currentDriver = null;
+
+            const safeSession = {
+                get(key) {
+                    try {
+                        return sessionStorage.getItem(key);
+                    } catch (error) {
+                        console.warn("sessionStorage get 失敗：", error);
+                        return null;
+                    }
+                },
+                set(key, value) {
+                    try {
+                        sessionStorage.setItem(key, value);
+                    } catch (error) {
+                        console.warn("sessionStorage set 失敗：", error);
+                    }
+                },
+                remove(key) {
+                    try {
+                        sessionStorage.removeItem(key);
+                    } catch (error) {
+                        console.warn("sessionStorage remove 失敗：", error);
+                    }
+                }
+            };
+
+            const drivers = {
+                local: {
+                    read() {
+                        const raw = localStorage.getItem(KEY);
+                        if (!raw) return [];
+                        return JSON.parse(raw);
+                    },
+                    write(payload) {
+                        localStorage.setItem(KEY, payload);
+                    },
+                    clear() {
+                        localStorage.removeItem(KEY);
+                    }
+                },
+                session: {
+                    read() {
+                        const raw = sessionStorage.getItem(KEY);
+                        if (!raw) return [];
+                        return JSON.parse(raw);
+                    },
+                    write(payload) {
+                        sessionStorage.setItem(KEY, payload);
+                    },
+                    clear() {
+                        sessionStorage.removeItem(KEY);
+                    }
+                },
+                memory: {
+                    read() {
+                        return memoryCache;
+                    },
+                    write(data) {
+                        memoryCache = data;
+                    },
+                    clear() {
+                        memoryCache = [];
+                    }
+                }
+            };
+
+            const setDriver = (name) => {
+                currentDriver = name;
+                safeSession.set(DRIVER_KEY, name);
+            };
+
+            const getDriverFromSession = () => safeSession.get(DRIVER_KEY);
+
+            const getDriver = () => currentDriver || getDriverFromSession() || "memory";
+
+            const tryRead = (driverName) => {
+                const driver = drivers[driverName];
+                if (!driver) return null;
+                try {
+                    const data = driver.read();
+                    if (!Array.isArray(data)) return [];
+                    if (driverName !== "memory") {
+                        drivers.memory.write(data);
+                    }
+                    setDriver(driverName);
+                    return data;
+                } catch (error) {
+                    console.warn(`讀取 ${driverName} 失敗：`, error);
+                    try {
+                        driver.clear && driver.clear();
+                    } catch (clearError) {
+                        console.warn(`清除 ${driverName} 失敗：`, clearError);
+                    }
+                    return null;
+                }
+            };
+
+            const read = () => {
+                const preferred = getDriver();
+                const order = Array.from(new Set([preferred, "local", "session", "memory"]));
+                for (const driverName of order) {
+                    const data = tryRead(driverName);
+                    if (Array.isArray(data)) {
+                        return data;
+                    }
+                }
+                drivers.memory.clear();
+                setDriver("memory");
+                return [];
+            };
+
+            const write = (data) => {
+                const payload = JSON.stringify(data);
+                for (const driverName of ["local", "session"]) {
+                    const driver = drivers[driverName];
+                    if (!driver) continue;
+                    try {
+                        driver.write(payload);
+                        drivers.memory.write(data);
+                        setDriver(driverName);
+                        return driverName;
+                    } catch (error) {
+                        console.warn(`寫入 ${driverName} 失敗：`, error);
+                        try {
+                            driver.clear && driver.clear();
+                        } catch (clearError) {
+                            console.warn(`清除 ${driverName} 失敗：`, clearError);
+                        }
+                    }
+                }
+                drivers.memory.write(data);
+                setDriver("memory");
+                return "memory";
+            };
+
+            return {
+                read,
+                write,
+                getDriver
+            };
+        })();
+
+        let images = imgStore.read().map((item) => ({
+            ...item,
+            id: String(item.id || crypto.randomUUID())
+        }));
+
+        const toast = $("#toast");
+        let toastTimer = null;
+
+        const showToast = (message, duration = 1600) => {
+            toast.textContent = message;
+            toast.classList.add("show");
+            if (toastTimer) window.clearTimeout(toastTimer);
+            toastTimer = window.setTimeout(() => {
+                toast.classList.remove("show");
+            }, duration);
+        };
+
+        const updateStorageInfo = (overrideDriver = null) => {
+            const storageInfo = $("#storageInfo");
+            const warning = $("#memoryWarning");
+            if (!storageInfo) return;
+
+            const driver = overrideDriver || imgStore.getDriver();
+            const dataSize = JSON.stringify(images).length;
+            const sizeMB = (dataSize / 1024 / 1024).toFixed(2);
+
+            const driverLabel = {
+                local: "localStorage",
+                session: "sessionStorage",
+                memory: "記憶體（暫存）"
+            }[driver] || driver;
+
+            storageInfo.textContent = `已使用：${sizeMB} MB / ~5 MB（目前使用：${driverLabel}）`;
+            storageInfo.style.color = dataSize > 4 * 1024 * 1024 ? "#dc2626" : "#475569";
+
+            if (driver === "memory") {
+                warning.classList.add("show");
+            } else {
+                warning.classList.remove("show");
+            }
+        };
+
+        const saveImages = () => {
+            const driver = imgStore.write(images);
+            updateStorageInfo(driver);
+            return driver;
+        };
+
+        const renderGallery = () => {
+            const gallery = $("#imageGallery");
+            if (!gallery) return;
+            if (!images.length) {
+                gallery.innerHTML = `<div style="padding:2.5rem 1rem; text-align:center; color:#94a3b8; background:#f8fafc; border-radius:14px;">目前沒有任何圖片，請先上傳。</div>`;
+                return;
+            }
+
+            gallery.innerHTML = images
+                .map((img) => {
+                    const title = img.name || "未命名圖片";
+                    return `
+                    <article class="card" data-id="${img.id}">
+                        <img src="${img.data}" alt="${title}" />
+                        <div class="caption">${title}</div>
+                        <div class="overlay">長按或右鍵可複製／刪除</div>
+                    </article>
+                `;
+                })
+                .join("");
+        };
+
+        const pickImageButton = $("#pickImage");
+        const imageInput = $("#imageInput");
+
+        pickImageButton?.addEventListener("click", () => imageInput?.click());
+
+        const compressImage = (file, maxWidth = 1600, quality = 0.8) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    img.onload = () => {
+                        let { width, height } = img;
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                        const canvas = document.createElement("canvas");
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext("2d");
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL("image/jpeg", quality));
+                    };
+                    img.onerror = reject;
+                    img.src = event.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        };
+
+        const handleFiles = async (fileList) => {
+            for (const file of Array.from(fileList)) {
+                if (!file.type.startsWith("image/")) continue;
+                try {
+                    const compressed = await compressImage(file);
+                    const id = crypto.randomUUID();
+                    const name = $("#imageName").value.trim() || file.name;
+                    images.push({
+                        id,
+                        name,
+                        data: compressed,
+                        type: "image/jpeg",
+                        originalSize: file.size,
+                        uploadDate: new Date().toISOString()
+                    });
+                    saveImages();
+                    renderGallery();
+                    showToast("✅ 圖片已新增並儲存");
+                    $("#imageName").value = "";
+                } catch (error) {
+                    console.error("圖片處理失敗：", error);
+                    showToast("❌ 圖片處理失敗，請重試", 2200);
+                }
+            }
+        };
+
+        imageInput?.addEventListener("change", (event) => {
+            handleFiles(event.target.files);
+            event.target.value = "";
+        });
+
+        $("#clearAll")?.addEventListener("click", () => {
+            images = [];
+            saveImages();
+            renderGallery();
+            showToast("🧹 已清除所有圖片");
+        });
+
+        const contextMenu = $("#contextMenu");
+        let currentImageId = null;
+
+        const hideContextMenu = () => {
+            contextMenu?.classList.remove("show");
+        };
+
+        const showContextMenu = (x, y) => {
+            if (!contextMenu) return;
+            const menuWidth = contextMenu.offsetWidth || 160;
+            const menuHeight = contextMenu.offsetHeight || 80;
+            const maxLeft = window.innerWidth - menuWidth - 12;
+            const maxTop = window.innerHeight - menuHeight - 12;
+            contextMenu.style.left = `${Math.min(x, maxLeft)}px`;
+            contextMenu.style.top = `${Math.min(y, maxTop)}px`;
+            contextMenu.classList.add("show");
+            setTimeout(() => {
+                document.addEventListener("click", hideContextMenu, { once: true });
+            }, 50);
+        };
+
+        let pressTimer = null;
+
+        const startPressTimer = (event, id) => {
+            clearTimeout(pressTimer);
+            pressTimer = setTimeout(() => {
+                currentImageId = id;
+                const point = event.touches ? event.touches[0] : event;
+                showContextMenu(point.clientX, point.clientY);
+            }, 450);
+        };
+
+        const cancelPressTimer = () => {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        };
+
+        $("#imageGallery")?.addEventListener("mousedown", (event) => {
+            const card = event.target.closest(".card");
+            if (!card) return;
+            startPressTimer(event, card.dataset.id);
+        });
+
+        $("#imageGallery")?.addEventListener("touchstart", (event) => {
+            const card = event.target.closest(".card");
+            if (!card) return;
+            startPressTimer(event, card.dataset.id);
+        });
+
+        $$("#imageGallery, body").forEach((el) => {
+            el.addEventListener("mouseup", cancelPressTimer);
+            el.addEventListener("mouseleave", cancelPressTimer);
+            el.addEventListener("touchend", cancelPressTimer);
+            el.addEventListener("touchcancel", cancelPressTimer);
+        });
+
+        $("#btnCopy")?.addEventListener("click", () => {
+            hideContextMenu();
+            if (!currentImageId) return;
+            const image = images.find((item) => item.id === currentImageId);
+            if (!image) return;
+            const url = `${location.origin}${location.pathname}#image-${encodeURIComponent(currentImageId)}`;
+            navigator.clipboard
+                .writeText(url)
+                .then(() => showToast("📋 已複製圖片連結"))
+                .catch(() => showToast("⚠️ 無法使用剪貼簿，請手動複製"));
+        });
+
+        const confirmOverlay = $("#confirmOverlay");
+        const confirmDeleteBtn = $("#confirmDelete");
+        const cancelDeleteBtn = $("#cancelDelete");
+
+        const showConfirm = () => {
+            confirmOverlay?.classList.add("show");
+            return new Promise((resolve) => {
+                const handleCancel = () => {
+                    cleanup();
+                    resolve(false);
+                };
+
+                const handleConfirm = () => {
+                    cleanup();
+                    resolve(true);
+                };
+
+                const handleOverlayClick = (event) => {
+                    if (event.target === confirmOverlay) {
+                        cleanup();
+                        resolve(false);
+                    }
+                };
+
+                const cleanup = () => {
+                    confirmOverlay?.classList.remove("show");
+                    cancelDeleteBtn?.removeEventListener("click", handleCancel);
+                    confirmDeleteBtn?.removeEventListener("click", handleConfirm);
+                    confirmOverlay?.removeEventListener("click", handleOverlayClick);
+                };
+
+                cancelDeleteBtn?.addEventListener("click", handleCancel, { once: true });
+                confirmDeleteBtn?.addEventListener("click", handleConfirm, { once: true });
+                confirmOverlay?.addEventListener("click", handleOverlayClick, { once: true });
+            });
+        };
+
+        $("#btnDelete")?.addEventListener("click", async () => {
+            hideContextMenu();
+            if (!currentImageId) return;
+            const confirmed = await showConfirm();
+            if (!confirmed) return;
+
+            const latest = imgStore.read();
+            const next = latest.filter((item) => String(item.id) !== String(currentImageId));
+            images = next;
+            saveImages();
+            renderGallery();
+            showToast("🗑️ 圖片已刪除");
+            currentImageId = null;
+        });
+
+        renderGallery();
+        saveImages();
+
+        window.addEventListener("resize", () => hideContextMenu());
+        window.addEventListener("scroll", () => hideContextMenu());
+    </script>
+</body>
+</html>
+
