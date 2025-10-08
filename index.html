@@ -1,719 +1,1670 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>圖片庫儲存測試</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>花枝鼠社群專用 - 臨時對話站</title>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, push, onValue, remove, set, onDisconnect, query, orderByChild, limitToLast } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3Ml5IrxQAX1s9W03y_yRjU1xELR_kNF8",
+            authDomain: "rat50khz.firebaseapp.com",
+            databaseURL: "https://rat50khz-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "rat50khz",
+            storageBucket: "rat50khz.firebasestorage.app",
+            messagingSenderId: "259578799109",
+            appId: "1:259578799109:web:2faaf07c2a5ca202b0686c",
+            measurementId: "G-CRM8NDPK0G"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        window.firebaseDB = database;
+        window.firebaseRef = ref;
+        window.firebasePush = push;
+        window.firebaseOnValue = onValue;
+        window.firebaseRemove = remove;
+        window.firebaseSet = set;
+        window.firebaseOnDisconnect = onDisconnect;
+        window.firebaseQuery = query;
+        window.firebaseOrderByChild = orderByChild;
+        window.firebaseLimitToLast = limitToLast;
+    </script>
+
     <style>
-        body {
-            font-family: "Noto Sans TC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #f2f4f5;
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');
+
+        * {
             margin: 0;
-            padding: 2rem;
-            color: #1f2933;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 40px 20px 20px;
+            transition: background-color 0.5s;
+        }
+
+        body.logged-in {
+            align-items: flex-start;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .container.rooms-visible {
+            gap: 48px;
         }
 
         h1 {
-            margin-bottom: 1rem;
-            font-size: 1.75rem;
-        }
-
-        .panel {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px -24px rgba(15, 23, 42, 0.35);
-            padding: 24px;
-            max-width: 880px;
-            margin: 0 auto;
-        }
-
-        .input-row {
-            margin-bottom: 1.5rem;
-        }
-
-        .input-row label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        input[type="text"],
-        input[type="file"] {
-            width: 100%;
-            padding: 0.65rem 0.75rem;
-            border: 1px solid #cbd2d9;
-            border-radius: 10px;
-            font-size: 1rem;
-        }
-
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-        }
-
-        button {
-            border: none;
-            border-radius: 999px;
-            padding: 0.65rem 1.5rem;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-        }
-
-        button.primary {
-            background: linear-gradient(135deg, #8ab4f8, #5a8dee);
-            color: white;
-            box-shadow: 0 10px 20px -10px rgba(66, 133, 244, 0.7);
-        }
-
-        button.secondary {
-            background: rgba(113, 128, 150, 0.14);
-            color: #334155;
-        }
-
-        button:active {
-            transform: scale(0.97);
-        }
-
-        .gallery {
-            margin-top: 2rem;
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        }
-
-        .card {
-            position: relative;
-            border-radius: 14px;
-            overflow: hidden;
-            background: #f8fafc;
-            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
-        }
-
-        .card img {
-            display: block;
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-        }
-
-        .card .caption {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.8rem;
-            background: rgba(15, 23, 42, 0.72);
-            color: white;
-        }
-
-        .card .overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(15, 23, 42, 0.55);
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            color: white;
-            font-weight: 600;
+            font-size: 42px;
+            font-weight: 700;
             text-align: center;
-            padding: 0.5rem;
+            letter-spacing: 3px;
+            color: #5A4A3D;
         }
 
-        .card:hover .overlay {
-            opacity: 1;
+        h2 {
+            font-size: 26px;
+            font-weight: 400;
+            text-align: center;
+            letter-spacing: 2px;
+            color: #7A6A5D;
         }
 
-        .storage-info {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: #475569;
-        }
-
-        .toast {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            background: rgba(15, 23, 42, 0.92);
-            color: white;
-            padding: 0.9rem 1.2rem;
-            border-radius: 12px;
-            font-size: 0.95rem;
-            box-shadow: 0 20px 40px -20px rgba(15, 23, 42, 0.8);
-            opacity: 0;
-            transform: translateY(-8px);
-            pointer-events: none;
-            transition: opacity 0.25s ease, transform 0.25s ease;
-            z-index: 1200;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .context-menu {
-            position: fixed;
-            min-width: 160px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 18px 45px -30px rgba(15, 23, 42, 0.5);
-            padding: 0.35rem;
-            opacity: 0;
-            transform: scale(0.96);
-            transition: opacity 0.16s ease, transform 0.16s ease;
-            pointer-events: none;
-            z-index: 1100;
-        }
-
-        .context-menu.show {
-            opacity: 1;
-            transform: scale(1);
-            pointer-events: auto;
-        }
-
-        .context-menu button {
-            width: 100%;
+        .description {
             text-align: left;
-            padding: 0.65rem 0.85rem;
-            border-radius: 9px;
-            background: none;
-            font-size: 0.9rem;
-            color: #1e293b;
+            line-height: 1.9;
+            font-size: 15px;
+            padding: 0 10px;
+            color: #5A4A3D;
         }
 
-        .context-menu button:hover {
-            background: rgba(99, 102, 241, 0.12);
-        }
-
-        .context-menu button.delete {
-            color: #dc2626;
-        }
-
-        .context-menu button.delete:hover {
-            background: rgba(248, 113, 113, 0.16);
-        }
-
-        .confirm-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.55);
+        .warning-box {
+            border-radius: 24px;
+            padding: 14px 20px;
+            margin: 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-            z-index: 1300;
+            max-width: 92%;
         }
 
-        .confirm-overlay.show {
-            opacity: 1;
-            pointer-events: auto;
+        .warning-icon {
+            font-size: 28px;
+            margin-right: 14px;
+            flex-shrink: 0;
         }
 
-        .confirm-dialog {
-            background: white;
-            border-radius: 16px;
-            padding: 1.75rem;
-            width: min(360px, calc(100% - 32px));
-            text-align: center;
-            transform: scale(0.93);
-            transition: transform 0.24s ease;
+        .warning-text {
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+            padding: 6px 12px;
+            border-radius: 8px;
         }
 
-        .confirm-overlay.show .confirm-dialog {
-            transform: scale(1);
-        }
-
-        .confirm-actions {
+        .login-card {
+            background: rgba(255, 255, 255, 0.86);
+            border-radius: 28px;
+            padding: 28px 26px 32px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
             display: flex;
-            justify-content: center;
-            gap: 0.75rem;
-            margin-top: 1.5rem;
+            flex-direction: column;
+            gap: 28px;
         }
 
-        .warning {
-            margin-top: 1rem;
-            padding: 0.9rem 1rem;
-            background: rgba(251, 191, 36, 0.16);
+        .login-section,
+        .admin-section {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .login-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #5A4A3D;
+            white-space: nowrap;
+        }
+
+        .nickname-input,
+        .password-input {
+            background-color: #FFF;
+            border: 2px solid #D4C4B4;
             border-radius: 12px;
-            border: 1px solid rgba(217, 119, 6, 0.35);
-            color: #b45309;
-            font-size: 0.85rem;
+            padding: 13px 20px;
+            font-size: 15px;
+            outline: none;
+            flex: 1;
+            color: #5A4A3D;
+        }
+
+        .nickname-input::placeholder,
+        .password-input::placeholder {
+            color: #B8A89A;
+        }
+
+        .nickname-input.readonly {
+            background-color: rgba(244, 236, 229, 0.7);
+            cursor: default;
+        }
+
+        .admin-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .btn-admin {
+            background-color: #E8D4C4;
+            color: #5A4A3D;
+            border: none;
+            border-radius: 22px;
+            padding: 13px 20px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-admin:hover {
+            background-color: #D8C4B4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-admin.selected {
+            background-color: #8B5A3D;
+            color: #FFF;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+            font-weight: 600;
+        }
+
+        .password-input {
+            max-width: 320px;
+            margin: 0 auto;
             display: none;
         }
 
-        .warning.show {
-            display: block;
+        .btn-main-action {
+            background: linear-gradient(135deg, #6B5A3D 0%, #8B7355 100%);
+            color: #FDF1D8;
+            border: none;
+            border-radius: 18px;
+            padding: 15px 26px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            box-shadow: 0 10px 24px rgba(107, 90, 61, 0.35);
+        }
+
+        .btn-main-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(107, 90, 61, 0.45);
+        }
+
+        .btn-main-action:active {
+            transform: translateY(0);
+        }
+
+        .note-text {
+            color: #8B7355;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .version-text {
+            text-align: center;
+            color: #8B7355;
+            font-size: 13px;
+        }
+
+        .rooms-section {
+            position: relative;
+            background: rgba(255, 255, 255, 0.78);
+            border-radius: 28px;
+            padding: 32px 28px 36px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        .rooms-section.hidden {
+            display: none;
+        }
+
+        .rooms-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .rooms-section.locked .rooms-content {
+            filter: blur(1.6px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .rooms-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 26px;
+            background: rgba(255, 255, 255, 0.88);
+            border-radius: 28px;
+            font-size: 16px;
+            font-weight: 600;
+            z-index: 2;
+        }
+
+        .rooms-section.locked .rooms-overlay {
+            display: flex;
+        }
+
+        .room-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .room-hint {
+            color: #7A6A5D;
+            font-size: 16px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .welcome-text {
+            color: #8B7355;
+            font-size: 17px;
+            margin-top: 8px;
+        }
+
+        .online-info {
+            display: none;
+            align-items: center;
+            color: #5A4A3D;
+            font-size: 15px;
+            margin-bottom: 18px;
+            padding: 0 5px;
+        }
+
+        .online-dot {
+            width: 11px;
+            height: 11px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .room-item {
+            aspect-ratio: 1;
+            background-color: #E8CFC4;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+            position: relative;
+        }
+
+        .room-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+        }
+
+        .room-item:active {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .room-item.has-users {
+            background-color: #C4E8D4;
+        }
+
+        .room-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-bottom: 12px;
+            background-color: #8B7355;
+        }
+
+        .room-dot.online {
+            background-color: #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        }
+
+        .room-name {
+            color: #5A4A3D;
+            font-size: 16px;
+            text-align: center;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .room-count {
+            color: #5A4A3D;
+            font-size: 12px;
+        }
+
+        .create-room-section {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .room-name-input {
+            flex: 1 1 230px;
+            background-color: rgba(107, 90, 61, 0.15);
+            color: #5A4A3D;
+            border: 2px solid rgba(107, 90, 61, 0.3);
+            border-radius: 10px;
+            padding: 13px 18px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .room-name-input::placeholder {
+            color: #B8A89A;
+        }
+
+        .btn-create-room {
+            flex: 1 1 220px;
+            background: linear-gradient(135deg, #E8A87C 0%, #E27D60 100%);
+            color: #FFF;
+            border: none;
+            border-radius: 14px;
+            padding: 13px 26px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(226, 125, 96, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .btn-create-room:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(226, 125, 96, 0.4);
+        }
+
+        .btn-create-room:active {
+            transform: translateY(0);
+        }
+
+        .chat-page {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #F5F5F5;
+        }
+
+        .chat-header {
+            background-color: #FFF;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .btn-back {
+            background: none;
+            border: none;
+            font-size: 26px;
+            color: #5A4A3D;
+            cursor: pointer;
+            padding: 0;
+            width: 35px;
+        }
+
+        .chat-header-center {
+            flex: 1;
+            text-align: center;
+        }
+
+        .room-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #5A4A3D;
+            margin-bottom: 3px;
+        }
+
+        .online-count {
+            font-size: 13px;
+            color: #8B7355;
+        }
+
+        .chat-header-right {
+            width: 35px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .timer-badge {
+            background-color: #FFB347;
+            color: #5A4A3D;
+            padding: 3px 9px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .btn-menu {
+            background: none;
+            border: none;
+            font-size: 26px;
+            color: #5A4A3D;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px;
+            padding-bottom: 100px;
+        }
+
+        .notice-box {
+            background-color: #FFF;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 18px;
+            color: #5A4A3D;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .notice-box p {
+            margin: 6px 0;
+        }
+
+        .message-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 14px;
+        }
+
+        .message-item.mine {
+            align-items: flex-end;
+        }
+
+        .message-nickname {
+            font-size: 12px;
+            color: #8B7355;
+            margin-bottom: 3px;
+            padding: 0 6px;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 11px 14px;
+            border-radius: 14px;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message-bubble.mine {
+            background-color: #A8D5BA;
+        }
+
+        .message-bubble.others {
+            background-color: #F0E6D6;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .message-image {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .chat-input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #FFF;
+            padding: 14px 16px;
+            border-top: 1px solid #E0E0E0;
+        }
+
+        .image-previews {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .image-preview-item {
+            position: relative;
+        }
+
+        .image-preview {
+            width: 55px;
+            height: 55px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .btn-remove-image {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 18px;
+            height: 18px;
+            background-color: #FF5252;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-image {
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        .message-input {
+            flex: 1;
+            background-color: #F5F5F5;
+            border: 2px solid #E0E0E0;
+            border-radius: 22px;
+            padding: 11px 18px;
+            font-size: 15px;
+            color: #333;
+            outline: none;
+        }
+
+        .btn-send {
+            background-color: #6B5A3D;
+            color: #E8DCC4;
+            border: none;
+            border-radius: 10px;
+            padding: 11px 22px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-image {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .menu-modal .modal-content {
+            background-color: #FFF;
+            border-radius: 14px;
+            padding: 28px;
+            max-width: 380px;
+            width: 90%;
+        }
+
+        .menu-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #5A4A3D;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .menu-btn {
+            background-color: #6B5A3D;
+            color: #E8DCC4;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .menu-btn:hover {
+            background-color: #544730;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-top: 32px;
+            }
+
+            h1 {
+                font-size: 34px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            .description {
+                font-size: 14px;
+            }
+
+            .login-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .section-title {
+                width: 100%;
+                text-align: center;
+            }
+
+            .nickname-input {
+                width: 100%;
+            }
+
+            .admin-buttons {
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+            }
+
+            .rooms-grid {
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+            }
         }
     </style>
 </head>
 <body>
-    <main class="panel">
-        <h1>📸 我的圖片庫（儲存層修正版）</h1>
-        <p>這份範例展示了如何在 Canva Code 的沙箱環境中可靠地儲存、讀取並刪除圖片。重點調整包含：
-            <strong>自動偵測可用儲存層</strong>、<strong>在 fallback 時同步清除舊資料</strong> 以及
-            <strong>避免被遮罩擋住的自訂確認視窗</strong>。</p>
-
-        <section class="input-row">
-            <label for="imageInput">選擇圖片</label>
-            <input id="imageInput" type="file" accept="image/*" multiple />
-        </section>
-
-        <section class="input-row">
-            <label for="imageName">圖片名稱（可選）</label>
-            <input id="imageName" type="text" placeholder="輸入圖片說明" />
-        </section>
-
-        <div class="actions">
-            <button id="pickImage" class="primary">上傳圖片</button>
-            <button id="clearAll" class="secondary">清除所有圖片</button>
+    <div id="mainContainer" class="container">
+        <div>
+            <h1>花枝鼠社群專用</h1>
+            <h2>臨時對話站</h2>
         </div>
 
-        <div class="storage-info" id="storageInfo">正在讀取儲存空間...</div>
-        <div class="warning" id="memoryWarning">⚠️ 因瀏覽器儲存空間不足，目前資料僅暫存於記憶體，重新整理後會消失。</div>
+        <div class="description">
+            <p>有時候想跟群友單獨說兩句，但是又不方便留Line怎麼辦？</p>
+            <p>有些人真的習慣 Line 好友名單保持整潔啊🥲</p>
+            <p>現在社群提供成員一個不用換 Line 也能講悄悄話的地方。</p>
+        </div>
 
-        <section class="gallery" id="imageGallery"></section>
-    </main>
+        <div class="warning-box" id="warningBox">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-text" id="warningText">提高警覺、嚴防詐騙、勿提供個資/轉帳</div>
+        </div>
 
-    <div class="context-menu" id="contextMenu">
-        <button id="btnCopy">📋 複製連結</button>
-        <button id="btnDelete" class="delete">🗑️ 刪除此圖片</button>
-    </div>
+        <div class="login-card">
+            <div class="login-section">
+                <div class="login-row">
+                    <div class="section-title">一般成員</div>
+                    <input type="text" id="nicknameInput" class="nickname-input" placeholder="輸入暱稱">
+                </div>
+            </div>
 
-    <div class="confirm-overlay" id="confirmOverlay" role="dialog" aria-modal="true">
-        <div class="confirm-dialog">
-            <div style="font-size:2.4rem;">🗑️</div>
-            <h2 style="margin:1rem 0 0.25rem;">確定要刪除這張圖片嗎？</h2>
-            <p style="color:#64748b; font-size:0.9rem;">刪除後無法復原，且將立即從儲存空間移除。</p>
-            <div class="confirm-actions">
-                <button class="secondary" id="cancelDelete">取消</button>
-                <button class="primary" id="confirmDelete">刪除</button>
+            <div class="admin-section">
+                <div class="section-title" style="text-align: center;">花枝鼠管理員</div>
+                <div class="admin-buttons">
+                    <button onclick="selectAdmin(event, '吸鼠女')" class="btn-admin" data-admin="吸鼠女">吸鼠女</button>
+                    <button onclick="selectAdmin(event, '大白美妙')" class="btn-admin" data-admin="大白美妙">大白美妙</button>
+                    <button onclick="selectAdmin(event, '采瑄')" class="btn-admin" data-admin="采瑄">采瑄</button>
+                    <button onclick="selectAdmin(event, 'Jinx')" class="btn-admin" data-admin="Jinx">Jinx</button>
+                    <button onclick="selectAdmin(event, '芒果')" class="btn-admin" data-admin="芒果">芒果</button>
+                </div>
+                <input type="password" id="adminPassword" class="password-input" placeholder="輸入密碼">
+                <button id="enterRoomsBtn" class="btn-main-action" onclick="enterRooms()">加入/創建鼠窩</button>
+                <div class="note-text">一般成員無需輸入密碼</div>
+            </div>
+        </div>
+
+        <div class="version-text">2025/10/03 創建 v1.3.1</div>
+
+        <div id="roomsSection" class="rooms-section locked">
+            <div id="roomsOverlay" class="rooms-overlay">
+                <span>輸入暱稱或管理員密碼後點擊「加入/創建鼠窩」</span>
+            </div>
+            <div class="rooms-content">
+                <div class="room-header">
+                    <h1 style="font-size: 34px; margin-bottom: 6px;">選擇鼠窩</h1>
+                    <div class="welcome-text">歡迎 <strong id="welcomeName"></strong></div>
+                </div>
+
+                <div class="room-hint">選擇鼠窩或創建鼠窩</div>
+
+                <div class="online-info" id="onlineInfoDiv">
+                    <div class="online-dot"></div>
+                    <span>在線人數：<strong id="totalOnline">0</strong></span>
+                </div>
+
+                <div class="rooms-grid" id="roomsList">
+                    <div class="room-item" onclick="enterRoom('溫溫鼠窩')" data-room="溫溫鼠窩">
+                        <div class="room-dot"></div>
+                        <div class="room-name">溫溫鼠窩</div>
+                        <div class="room-count"></div>
+                    </div>
+                    <div class="room-item" data-room="empty1">
+                        <div class="room-dot"></div>
+                        <div class="room-name">鼠窩沒鼠</div>
+                        <div class="room-count"></div>
+                    </div>
+                    <div class="room-item" data-room="empty2">
+                        <div class="room-dot"></div>
+                        <div class="room-name">鼠窩沒鼠</div>
+                        <div class="room-count"></div>
+                    </div>
+                    <div class="room-item" data-room="empty3">
+                        <div class="room-dot"></div>
+                        <div class="room-name">鼠窩沒鼠</div>
+                        <div class="room-count"></div>
+                    </div>
+                </div>
+
+                <div class="create-room-section">
+                    <input type="text" id="roomNameInput" class="room-name-input" placeholder="輸入鼠窩名稱...">
+                    <button onclick="createOrJoinRoom()" class="btn-create-room">創建/加入鼠窩</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="toast" id="toast"></div>
+    <div id="chatPage" class="chat-page">
+        <div class="chat-header">
+            <button class="btn-back" onclick="backToRooms()">←</button>
+            <div class="chat-header-center">
+                <div class="room-title" id="currentRoomName"></div>
+                <div class="online-count">在線：<span id="roomOnlineCount">0</span>/5</div>
+            </div>
+            <div class="chat-header-right">
+                <span class="timer-badge" id="messageTimer" style="display: none;"></span>
+                <button class="btn-menu" onclick="showMenu()">⋮</button>
+            </div>
+        </div>
 
-    <script>
-        const $ = (selector) => document.querySelector(selector);
-        const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+        <div class="messages-container" id="messagesContainer">
+            <div class="notice-box">
+                <p>📢 訊息會在發送 1 小時後自動清除，圖片亦同</p>
+                <p>🖼️ 傳圖每次最多 3 張</p>
+                <p>📁 不支援檔案上傳</p>
+                <p>🐛 若發現 bug，請告訴我</p>
+                <p style="margin-top: 10px;"><strong>最後提醒：</strong></p>
+                <p>1. 請勿在此向他人借錢</p>
+                <p>2. 請勿在此借錢給他人</p>
+                <p>3. 請勿在此講我壞話</p>
+            </div>
+            <div id="messagesList"></div>
+        </div>
 
-        const KEY = "imageGallery";
+        <div class="chat-input-container">
+            <div class="image-previews" id="imagePreviewContainer"></div>
+            <div class="chat-input-row">
+                <input type="file" id="imageInput" accept="image/*" multiple style="display: none;" onchange="handleImageSelect(event)">
+                <button class="btn-image" onclick="document.getElementById('imageInput').click()">📷</button>
+                <input type="text" id="messageInput" class="message-input" placeholder="輸入訊息..." onkeypress="handleKeyPress(event)">
+                <button class="btn-send" onclick="sendMessage()">發送</button>
+            </div>
+        </div>
+    </div>
 
-        const imgStore = (() => {
-            const DRIVER_KEY = `${KEY}::driver`;
-            let memoryCache = [];
-            let currentDriver = null;
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <img id="modalImage" class="modal-image">
+    </div>
 
-            const safeSession = {
-                get(key) {
-                    try {
-                        return sessionStorage.getItem(key);
-                    } catch (error) {
-                        console.warn("sessionStorage get 失敗：", error);
-                        return null;
-                    }
-                },
-                set(key, value) {
-                    try {
-                        sessionStorage.setItem(key, value);
-                    } catch (error) {
-                        console.warn("sessionStorage set 失敗：", error);
-                    }
-                },
-                remove(key) {
-                    try {
-                        sessionStorage.removeItem(key);
-                    } catch (error) {
-                        console.warn("sessionStorage remove 失敗：", error);
-                    }
-                }
-            };
+    <div id="menuModal" class="modal menu-modal" onclick="closeMenu()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="menu-title">選單</div>
+            <button onclick="clearChat()" class="menu-btn" id="clearChatBtn" style="display: none;">清空對話</button>
+            <button onclick="showStats()" class="menu-btn" id="statsBtn" style="display: none;">使用統計</button>
+            <button onclick="logout()" class="menu-btn">登出</button>
+        </div>
+    </div>
 
-            const drivers = {
-                local: {
-                    read() {
-                        const raw = localStorage.getItem(KEY);
-                        if (!raw) return [];
-                        return JSON.parse(raw);
-                    },
-                    write(payload) {
-                        localStorage.setItem(KEY, payload);
-                    },
-                    clear() {
-                        localStorage.removeItem(KEY);
-                    }
-                },
-                session: {
-                    read() {
-                        const raw = sessionStorage.getItem(KEY);
-                        if (!raw) return [];
-                        return JSON.parse(raw);
-                    },
-                    write(payload) {
-                        sessionStorage.setItem(KEY, payload);
-                    },
-                    clear() {
-                        sessionStorage.removeItem(KEY);
-                    }
-                },
-                memory: {
-                    read() {
-                        return memoryCache;
-                    },
-                    write(data) {
-                        memoryCache = data;
-                    },
-                    clear() {
-                        memoryCache = [];
-                    }
-                }
-            };
+    <script type="module">
+        let currentUser = null;
+        let currentRoom = null;
+        let selectedImages = [];
+        let selectedAdmin = null;
+        let timerInterval = null;
+        let messagesListener = null;
+        let onlineListener = null;
+        let allRoomsListener = null;
+        let userPresenceRef = null;
+        let pagePresenceRef = null;
+        let roomsInitialized = false;
 
-            const setDriver = (name) => {
-                currentDriver = name;
-                safeSession.set(DRIVER_KEY, name);
-            };
-
-            const getDriverFromSession = () => safeSession.get(DRIVER_KEY);
-
-            const getDriver = () => currentDriver || getDriverFromSession() || "memory";
-
-            const tryRead = (driverName) => {
-                const driver = drivers[driverName];
-                if (!driver) return null;
-                try {
-                    const data = driver.read();
-                    if (!Array.isArray(data)) return [];
-                    if (driverName !== "memory") {
-                        drivers.memory.write(data);
-                    }
-                    setDriver(driverName);
-                    return data;
-                } catch (error) {
-                    console.warn(`讀取 ${driverName} 失敗：`, error);
-                    try {
-                        driver.clear && driver.clear();
-                    } catch (clearError) {
-                        console.warn(`清除 ${driverName} 失敗：`, clearError);
-                    }
-                    return null;
-                }
-            };
-
-            const read = () => {
-                const preferred = getDriver();
-                const order = Array.from(new Set([preferred, "local", "session", "memory"]));
-                for (const driverName of order) {
-                    const data = tryRead(driverName);
-                    if (Array.isArray(data)) {
-                        return data;
-                    }
-                }
-                drivers.memory.clear();
-                setDriver("memory");
-                return [];
-            };
-
-            const write = (data) => {
-                const payload = JSON.stringify(data);
-                for (const driverName of ["local", "session"]) {
-                    const driver = drivers[driverName];
-                    if (!driver) continue;
-                    try {
-                        driver.write(payload);
-                        drivers.memory.write(data);
-                        setDriver(driverName);
-                        return driverName;
-                    } catch (error) {
-                        console.warn(`寫入 ${driverName} 失敗：`, error);
-                        try {
-                            driver.clear && driver.clear();
-                        } catch (clearError) {
-                            console.warn(`清除 ${driverName} 失敗：`, clearError);
-                        }
-                    }
-                }
-                drivers.memory.write(data);
-                setDriver("memory");
-                return "memory";
-            };
-
-            return {
-                read,
-                write,
-                getDriver
-            };
-        })();
-
-        let images = imgStore.read().map((item) => ({
-            ...item,
-            id: String(item.id || crypto.randomUUID())
-        }));
-
-        const toast = $("#toast");
-        let toastTimer = null;
-
-        const showToast = (message, duration = 1600) => {
-            toast.textContent = message;
-            toast.classList.add("show");
-            if (toastTimer) window.clearTimeout(toastTimer);
-            toastTimer = window.setTimeout(() => {
-                toast.classList.remove("show");
-            }, duration);
+        const adminPasswords = {
+            '吸鼠女': '444',
+            '采瑄': '151',
+            '芒果': 'Ying',
+            '大白美妙': 'totoro',
+            'Jinx': 'jinx'
         };
 
-        const updateStorageInfo = (overrideDriver = null) => {
-            const storageInfo = $("#storageInfo");
-            const warning = $("#memoryWarning");
-            if (!storageInfo) return;
+        const morandiSchemes = [
+            { bg: '#4B3A41', text: '#F7F1EA' },
+            { bg: '#3F4856', text: '#F4EFE9' },
+            { bg: '#4A4F46', text: '#F6F1EB' },
+            { bg: '#4C3F4F', text: '#F5EFE7' },
+            { bg: '#3D4D4F', text: '#F3EDE6' },
+            { bg: '#4F433D', text: '#F6F0E9' }
+        ];
 
-            const driver = overrideDriver || imgStore.getDriver();
-            const dataSize = JSON.stringify(images).length;
-            const sizeMB = (dataSize / 1024 / 1024).toFixed(2);
+        const warningStyles = [
+            { bg: '#FF0000', color: '#FFFFFF' },
+            { bg: '#000000', color: '#FFFF00' },
+            { bg: '#000000', color: '#FFFFFF' }
+        ];
 
-            const driverLabel = {
-                local: "localStorage",
-                session: "sessionStorage",
-                memory: "記憶體（暫存）"
-            }[driver] || driver;
+        const randomScheme = morandiSchemes[Math.floor(Math.random() * morandiSchemes.length)];
+        const randomWarning = warningStyles[Math.floor(Math.random() * warningStyles.length)];
 
-            storageInfo.textContent = `已使用：${sizeMB} MB / ~5 MB（目前使用：${driverLabel}）`;
-            storageInfo.style.color = dataSize > 4 * 1024 * 1024 ? "#dc2626" : "#475569";
+        document.body.style.backgroundColor = randomScheme.bg;
+        const overlay = document.getElementById('roomsOverlay');
 
-            if (driver === "memory") {
-                warning.classList.add("show");
-            } else {
-                warning.classList.remove("show");
+        document.querySelectorAll('h1, h2, .description, .description p, .version-text').forEach(el => {
+            el.style.color = randomScheme.text;
+        });
+
+        if (overlay) {
+            overlay.style.color = '#5A4A3D';
+        }
+
+        const warningText = document.getElementById('warningText');
+        warningText.style.backgroundColor = randomWarning.bg;
+        warningText.style.color = randomWarning.color;
+
+        function ensureUserProfile() {
+            if (currentUser) {
+                return true;
             }
-        };
 
-        const saveImages = () => {
-            const driver = imgStore.write(images);
-            updateStorageInfo(driver);
-            return driver;
-        };
+            const nicknameInput = document.getElementById('nicknameInput');
+            const passwordInput = document.getElementById('adminPassword');
+            const nickname = nicknameInput.value.trim();
+            const password = passwordInput.value;
 
-        const renderGallery = () => {
-            const gallery = $("#imageGallery");
-            if (!gallery) return;
-            if (!images.length) {
-                gallery.innerHTML = `<div style="padding:2.5rem 1rem; text-align:center; color:#94a3b8; background:#f8fafc; border-radius:14px;">目前沒有任何圖片，請先上傳。</div>`;
+            if (selectedAdmin) {
+                if (!password) {
+                    alert('請輸入密碼');
+                    return false;
+                }
+
+                if (password !== adminPasswords[selectedAdmin]) {
+                    alert('密碼錯誤');
+                    return false;
+                }
+
+                currentUser = {
+                    id: 'admin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    nickname: selectedAdmin,
+                    isAdmin: true
+                };
+            } else {
+                if (!nickname) {
+                    alert('請輸入暱稱');
+                    return false;
+                }
+
+                currentUser = {
+                    id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    nickname: nickname,
+                    isAdmin: false
+                };
+            }
+
+            nicknameInput.value = currentUser.nickname;
+            nicknameInput.setAttribute('readonly', 'true');
+            nicknameInput.classList.add('readonly');
+
+            passwordInput.style.display = 'none';
+            passwordInput.value = '';
+
+            document.querySelectorAll('.btn-admin').forEach(btn => btn.classList.remove('selected'));
+            selectedAdmin = null;
+
+            return true;
+        }
+
+        async function showRoomsSection() {
+            const roomsSection = document.getElementById('roomsSection');
+            const mainContainer = document.getElementById('mainContainer');
+
+            roomsSection.classList.remove('hidden');
+            roomsSection.classList.remove('locked');
+            document.body.classList.add('logged-in');
+            mainContainer.classList.add('rooms-visible');
+            document.getElementById('welcomeName').textContent = currentUser.nickname;
+
+            if (!roomsInitialized) {
+                if (window.firebaseDB) {
+                    pagePresenceRef = window.firebaseRef(window.firebaseDB, `pageOnline/${currentUser.id}`);
+                    await window.firebaseSet(pagePresenceRef, {
+                        nickname: currentUser.nickname,
+                        isAdmin: currentUser.isAdmin,
+                        timestamp: Date.now()
+                    });
+                    window.firebaseOnDisconnect(pagePresenceRef).remove();
+                }
+
+                listenToAllRooms();
+                roomsInitialized = true;
+            }
+
+            roomsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        window.enterRooms = async function() {
+            if (!ensureUserProfile()) {
                 return;
             }
 
-            gallery.innerHTML = images
-                .map((img) => {
-                    const title = img.name || "未命名圖片";
-                    return `
-                    <article class="card" data-id="${img.id}">
-                        <img src="${img.data}" alt="${title}" />
-                        <div class="caption">${title}</div>
-                        <div class="overlay">長按或右鍵可複製／刪除</div>
-                    </article>
-                `;
-                })
-                .join("");
+            await showRoomsSection();
         };
 
-        const pickImageButton = $("#pickImage");
-        const imageInput = $("#imageInput");
+        window.selectAdmin = function(event, adminName) {
+            if (currentUser) {
+                return;
+            }
 
-        pickImageButton?.addEventListener("click", () => imageInput?.click());
-
-        const compressImage = (file, maxWidth = 1600, quality = 0.8) => {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    img.onload = () => {
-                        let { width, height } = img;
-                        if (width > maxWidth) {
-                            height = Math.round((height * maxWidth) / width);
-                            width = maxWidth;
-                        }
-                        const canvas = document.createElement("canvas");
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext("2d");
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL("image/jpeg", quality));
-                    };
-                    img.onerror = reject;
-                    img.src = event.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
+            document.querySelectorAll('.btn-admin').forEach(btn => {
+                btn.classList.remove('selected');
             });
+
+            event.target.classList.add('selected');
+            selectedAdmin = adminName;
+            const passwordInput = document.getElementById('adminPassword');
+            const nicknameInput = document.getElementById('nicknameInput');
+            nicknameInput.value = adminName;
+            passwordInput.style.display = 'block';
+            passwordInput.focus();
         };
 
-        const handleFiles = async (fileList) => {
-            for (const file of Array.from(fileList)) {
-                if (!file.type.startsWith("image/")) continue;
-                try {
-                    const compressed = await compressImage(file);
-                    const id = crypto.randomUUID();
-                    const name = $("#imageName").value.trim() || file.name;
-                    images.push({
-                        id,
-                        name,
-                        data: compressed,
-                        type: "image/jpeg",
-                        originalSize: file.size,
-                        uploadDate: new Date().toISOString()
-                    });
-                    saveImages();
-                    renderGallery();
-                    showToast("✅ 圖片已新增並儲存");
-                    $("#imageName").value = "";
-                } catch (error) {
-                    console.error("圖片處理失敗：", error);
-                    showToast("❌ 圖片處理失敗，請重試", 2200);
+        document.addEventListener('click', function(event) {
+            if (currentUser) {
+                return;
+            }
+
+            const isAdminButton = event.target.classList.contains('btn-admin');
+            const isPasswordInput = event.target.id === 'adminPassword';
+            const isActionButton = event.target.id === 'enterRoomsBtn';
+
+            if (!isAdminButton && !isPasswordInput && !isActionButton) {
+                document.querySelectorAll('.btn-admin').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                selectedAdmin = null;
+                const passwordInput = document.getElementById('adminPassword');
+                passwordInput.style.display = 'none';
+                passwordInput.value = '';
+            }
+        });
+
+        function listenToAllRooms() {
+            if (!window.firebaseDB) return;
+
+            const roomsRef = window.firebaseRef(window.firebaseDB, 'rooms');
+
+            if (allRoomsListener) {
+                allRoomsListener();
+            }
+
+            allRoomsListener = window.firebaseOnValue(roomsRef, (snapshot) => {
+                const roomsData = snapshot.val() || {};
+                updateRoomsList(roomsData);
+            });
+        }
+
+        function updateRoomsList(roomsData) {
+            let totalOnline = 0;
+            const customRooms = [];
+
+            Object.keys(roomsData).forEach(roomName => {
+                if (roomName !== '溫溫鼠窩') {
+                    customRooms.push(roomName);
+                }
+            });
+
+            Object.keys(roomsData).forEach(roomName => {
+                const roomData = roomsData[roomName];
+                const onlineCount = roomData.online ? Object.keys(roomData.online).length : 0;
+                totalOnline += onlineCount;
+            });
+
+            const defaultRoomData = roomsData['溫溫鼠窩'] || {};
+            const defaultOnline = defaultRoomData.online ? Object.keys(defaultRoomData.online).length : 0;
+
+            const defaultRoomElement = document.querySelector('[data-room="溫溫鼠窩"]');
+            if (defaultRoomElement) {
+                updateRoomElement(defaultRoomElement, '溫溫鼠窩', defaultOnline, false);
+            }
+
+            const emptySlots = document.querySelectorAll('#roomsList [data-room^="empty"]');
+            emptySlots.forEach((slot, index) => {
+                if (customRooms[index]) {
+                    const roomName = customRooms[index];
+                    const roomData = roomsData[roomName];
+                    const onlineCount = roomData.online ? Object.keys(roomData.online).length : 0;
+
+                    slot.setAttribute('data-room', roomName);
+                    slot.onclick = () => window.enterRoom(roomName);
+                    updateRoomElement(slot, roomName, onlineCount, false);
+                } else {
+                    slot.setAttribute('data-room', 'empty' + (index + 1));
+                    slot.onclick = null;
+                    updateRoomElement(slot, '鼠窩沒鼠', 0, true);
+                }
+            });
+
+            const onlineInfoDiv = document.getElementById('onlineInfoDiv');
+            if (totalOnline > 0) {
+                onlineInfoDiv.style.display = 'flex';
+                document.getElementById('totalOnline').textContent = totalOnline;
+            } else {
+                onlineInfoDiv.style.display = 'none';
+            }
+        }
+
+        function updateRoomElement(element, name, count, isPlaceholder = false) {
+            const dot = element.querySelector('.room-dot');
+            const nameSpan = element.querySelector('.room-name');
+            const countSpan = element.querySelector('.room-count');
+
+            if (count > 0) {
+                dot.classList.add('online');
+                element.classList.add('has-users');
+                nameSpan.textContent = name;
+                countSpan.textContent = `在線：${count}`;
+            } else {
+                dot.classList.remove('online');
+                element.classList.remove('has-users');
+                nameSpan.textContent = isPlaceholder ? '鼠窩沒鼠' : name;
+                countSpan.textContent = isPlaceholder ? '' : '在線：0';
+            }
+        }
+
+        window.createOrJoinRoom = function() {
+            if (!currentUser) {
+                alert('請先輸入暱稱或選擇管理員');
+                return;
+            }
+
+            const input = document.getElementById('roomNameInput');
+            const roomName = input.value.trim();
+
+            if (!roomName) {
+                alert('請輸入鼠窩名稱');
+                return;
+            }
+
+            if (roomName.length > 20) {
+                alert('房間名稱不能超過 20 個字');
+                return;
+            }
+
+            input.value = '';
+            window.enterRoom(roomName);
+        };
+
+        window.enterRoom = async function(roomName) {
+            if (!window.firebaseDB) {
+                alert('Firebase 未配置，無法使用即時功能');
+                return;
+            }
+
+            if (!currentUser) {
+                alert('請先輸入暱稱或選擇管理員');
+                return;
+            }
+
+            if (roomName === '鼠窩沒鼠' || roomName.startsWith('empty')) {
+                alert('此房間尚未命名或無人使用');
+                return;
+            }
+
+            const roomRef = window.firebaseRef(window.firebaseDB, `rooms/${roomName}/online`);
+            const snapshot = await new Promise(resolve => {
+                window.firebaseOnValue(roomRef, resolve, { onlyOnce: true });
+            });
+
+            const onlineUsers = snapshot.val() || {};
+            if (Object.keys(onlineUsers).length >= 5) {
+                alert('此房間已滿（最多 5 人）');
+                return;
+            }
+
+            currentRoom = roomName;
+
+            userPresenceRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
+            await window.firebaseSet(userPresenceRef, {
+                nickname: currentUser.nickname,
+                isAdmin: currentUser.isAdmin,
+                joinTime: Date.now()
+            });
+
+            window.firebaseOnDisconnect(userPresenceRef).remove();
+
+            document.getElementById('roomsSection').classList.add('hidden');
+            document.getElementById('chatPage').style.display = 'block';
+            document.getElementById('currentRoomName').textContent = roomName;
+
+            listenToMessages();
+            listenToOnlineUsers();
+            startMessageCleanup();
+
+            if (currentUser.isAdmin) {
+                document.getElementById('clearChatBtn').style.display = 'block';
+                if (currentUser.nickname === '吸鼠女') {
+                    document.getElementById('statsBtn').style.display = 'block';
                 }
             }
         };
 
-        imageInput?.addEventListener("change", (event) => {
-            handleFiles(event.target.files);
-            event.target.value = "";
-        });
+        function listenToMessages() {
+            if (!window.firebaseDB) return;
 
-        $("#clearAll")?.addEventListener("click", () => {
-            images = [];
-            saveImages();
-            renderGallery();
-            showToast("🧹 已清除所有圖片");
-        });
+            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+            const messagesQuery = window.firebaseQuery(
+                messagesRef,
+                window.firebaseOrderByChild('timestamp'),
+                window.firebaseLimitToLast(100)
+            );
 
-        const contextMenu = $("#contextMenu");
-        let currentImageId = null;
+            if (messagesListener) {
+                messagesListener();
+            }
 
-        const hideContextMenu = () => {
-            contextMenu?.classList.remove("show");
-        };
-
-        const showContextMenu = (x, y) => {
-            if (!contextMenu) return;
-            const menuWidth = contextMenu.offsetWidth || 160;
-            const menuHeight = contextMenu.offsetHeight || 80;
-            const maxLeft = window.innerWidth - menuWidth - 12;
-            const maxTop = window.innerHeight - menuHeight - 12;
-            contextMenu.style.left = `${Math.min(x, maxLeft)}px`;
-            contextMenu.style.top = `${Math.min(y, maxTop)}px`;
-            contextMenu.classList.add("show");
-            setTimeout(() => {
-                document.addEventListener("click", hideContextMenu, { once: true });
-            }, 50);
-        };
-
-        let pressTimer = null;
-
-        const startPressTimer = (event, id) => {
-            clearTimeout(pressTimer);
-            pressTimer = setTimeout(() => {
-                currentImageId = id;
-                const point = event.touches ? event.touches[0] : event;
-                showContextMenu(point.clientX, point.clientY);
-            }, 450);
-        };
-
-        const cancelPressTimer = () => {
-            clearTimeout(pressTimer);
-            pressTimer = null;
-        };
-
-        $("#imageGallery")?.addEventListener("mousedown", (event) => {
-            const card = event.target.closest(".card");
-            if (!card) return;
-            startPressTimer(event, card.dataset.id);
-        });
-
-        $("#imageGallery")?.addEventListener("touchstart", (event) => {
-            const card = event.target.closest(".card");
-            if (!card) return;
-            startPressTimer(event, card.dataset.id);
-        });
-
-        $$("#imageGallery, body").forEach((el) => {
-            el.addEventListener("mouseup", cancelPressTimer);
-            el.addEventListener("mouseleave", cancelPressTimer);
-            el.addEventListener("touchend", cancelPressTimer);
-            el.addEventListener("touchcancel", cancelPressTimer);
-        });
-
-        $("#btnCopy")?.addEventListener("click", () => {
-            hideContextMenu();
-            if (!currentImageId) return;
-            const image = images.find((item) => item.id === currentImageId);
-            if (!image) return;
-            const url = `${location.origin}${location.pathname}#image-${encodeURIComponent(currentImageId)}`;
-            navigator.clipboard
-                .writeText(url)
-                .then(() => showToast("📋 已複製圖片連結"))
-                .catch(() => showToast("⚠️ 無法使用剪貼簿，請手動複製"));
-        });
-
-        const confirmOverlay = $("#confirmOverlay");
-        const confirmDeleteBtn = $("#confirmDelete");
-        const cancelDeleteBtn = $("#cancelDelete");
-
-        const showConfirm = () => {
-            confirmOverlay?.classList.add("show");
-            return new Promise((resolve) => {
-                const handleCancel = () => {
-                    cleanup();
-                    resolve(false);
-                };
-
-                const handleConfirm = () => {
-                    cleanup();
-                    resolve(true);
-                };
-
-                const handleOverlayClick = (event) => {
-                    if (event.target === confirmOverlay) {
-                        cleanup();
-                        resolve(false);
-                    }
-                };
-
-                const cleanup = () => {
-                    confirmOverlay?.classList.remove("show");
-                    cancelDeleteBtn?.removeEventListener("click", handleCancel);
-                    confirmDeleteBtn?.removeEventListener("click", handleConfirm);
-                    confirmOverlay?.removeEventListener("click", handleOverlayClick);
-                };
-
-                cancelDeleteBtn?.addEventListener("click", handleCancel, { once: true });
-                confirmDeleteBtn?.addEventListener("click", handleConfirm, { once: true });
-                confirmOverlay?.addEventListener("click", handleOverlayClick, { once: true });
+            messagesListener = window.firebaseOnValue(messagesQuery, (snapshot) => {
+                displayMessages(snapshot.val());
+                updateTimer();
             });
+        }
+
+        function listenToOnlineUsers() {
+            if (!window.firebaseDB) return;
+
+            const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online`);
+
+            if (onlineListener) {
+                onlineListener();
+            }
+
+            onlineListener = window.firebaseOnValue(onlineRef, (snapshot) => {
+                const onlineUsers = snapshot.val() || {};
+                document.getElementById('roomOnlineCount').textContent = Object.keys(onlineUsers).length;
+            });
+        }
+
+        window.backToRooms = async function() {
+            if (userPresenceRef) {
+                await window.firebaseRemove(userPresenceRef);
+                userPresenceRef = null;
+            }
+
+            if (messagesListener) messagesListener();
+            if (onlineListener) onlineListener();
+            if (timerInterval) clearInterval(timerInterval);
+
+            document.getElementById('chatPage').style.display = 'none';
+            const roomsSection = document.getElementById('roomsSection');
+            roomsSection.classList.remove('hidden');
+            roomsSection.classList.remove('locked');
+            document.getElementById('messageTimer').style.display = 'none';
+            currentRoom = null;
+            selectedImages = [];
+            document.getElementById('imagePreviewContainer').innerHTML = '';
+            document.getElementById('messageInput').value = '';
         };
 
-        $("#btnDelete")?.addEventListener("click", async () => {
-            hideContextMenu();
-            if (!currentImageId) return;
-            const confirmed = await showConfirm();
-            if (!confirmed) return;
+        window.handleImageSelect = function(event) {
+            const files = event.target.files;
 
-            const latest = imgStore.read();
-            const next = latest.filter((item) => String(item.id) !== String(currentImageId));
-            images = next;
-            saveImages();
-            renderGallery();
-            showToast("🗑️ 圖片已刪除");
-            currentImageId = null;
+            if (selectedImages.length + files.length > 3) {
+                alert('每次最多只能傳送 3 張圖片');
+                event.target.value = '';
+                return;
+            }
+
+            Array.from(files).forEach(file => {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('圖片大小不能超過 5MB');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedImages.push(e.target.result);
+                    displayImagePreviews();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            event.target.value = '';
+        };
+
+        function displayImagePreviews() {
+            const container = document.getElementById('imagePreviewContainer');
+            container.innerHTML = '';
+
+            selectedImages.forEach((img, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'image-preview-item';
+
+                const imgElement = document.createElement('img');
+                imgElement.src = img;
+                imgElement.className = 'image-preview';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '×';
+                removeBtn.className = 'btn-remove-image';
+                removeBtn.onclick = () => {
+                    selectedImages.splice(index, 1);
+                    displayImagePreviews();
+                };
+
+                wrapper.appendChild(imgElement);
+                wrapper.appendChild(removeBtn);
+                container.appendChild(wrapper);
+            });
+        }
+
+        window.handleKeyPress = function(event) {
+            if (event.key === 'Enter') {
+                window.sendMessage();
+            }
+        };
+
+        window.sendMessage = async function() {
+            if (!window.firebaseDB) {
+                alert('Firebase 未配置');
+                return;
+            }
+
+            const messageInput = document.getElementById('messageInput');
+            const text = messageInput.value.trim();
+
+            if (!text && selectedImages.length === 0) return;
+
+            const messageData = {
+                userId: currentUser.id,
+                nickname: currentUser.nickname,
+                isAdmin: currentUser.isAdmin,
+                text: text,
+                images: selectedImages.length > 0 ? selectedImages : null,
+                timestamp: Date.now()
+            };
+
+            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+            await window.firebasePush(messagesRef, messageData);
+
+            messageInput.value = '';
+            selectedImages = [];
+            displayImagePreviews();
+        };
+
+        function displayMessages(messagesData) {
+            const container = document.getElementById('messagesList');
+            container.innerHTML = '';
+
+            if (!messagesData) return;
+
+            const messages = Object.entries(messagesData).map(([id, data]) => ({
+                id,
+                ...data
+            })).sort((a, b) => a.timestamp - b.timestamp);
+
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message-item';
+                if (msg.userId === currentUser.id) {
+                    messageDiv.classList.add('mine');
+                }
+
+                const nicknameSpan = document.createElement('div');
+                nicknameSpan.className = 'message-nickname';
+                nicknameSpan.textContent = msg.nickname + (msg.isAdmin ? ' 👑' : '');
+                messageDiv.appendChild(nicknameSpan);
+
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = msg.userId === currentUser.id ? 'message-bubble mine' : 'message-bubble others';
+
+                if (msg.text) {
+                    const textDiv = document.createElement('div');
+                    textDiv.textContent = msg.text;
+                    bubbleDiv.appendChild(textDiv);
+                }
+
+                if (msg.images && msg.images.length > 0) {
+                    const imagesDiv = document.createElement('div');
+                    imagesDiv.className = 'message-images';
+
+                    msg.images.forEach(imgSrc => {
+                        const img = document.createElement('img');
+                        img.src = imgSrc;
+                        img.className = 'message-image';
+                        img.onclick = () => window.openImageModal(imgSrc);
+                        imagesDiv.appendChild(img);
+                    });
+
+                    bubbleDiv.appendChild(imagesDiv);
+                }
+
+                messageDiv.appendChild(bubbleDiv);
+                container.appendChild(messageDiv);
+            });
+
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function updateTimer() {
+            if (!window.firebaseDB) return;
+
+            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+
+            window.firebaseOnValue(messagesRef, (snapshot) => {
+                const messagesData = snapshot.val();
+                if (!messagesData) {
+                    document.getElementById('messageTimer').style.display = 'none';
+                    return;
+                }
+
+                const messages = Object.values(messagesData);
+                if (messages.length === 0) {
+                    document.getElementById('messageTimer').style.display = 'none';
+                    return;
+                }
+
+                const oldestTimestamp = Math.min(...messages.map(m => m.timestamp));
+                const elapsed = Date.now() - oldestTimestamp;
+                const remaining = (60 * 60 * 1000) - elapsed;
+
+                if (remaining <= 0) {
+                    document.getElementById('messageTimer').style.display = 'none';
+                    return;
+                }
+
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+
+                document.getElementById('messageTimer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                document.getElementById('messageTimer').style.display = 'inline-block';
+            }, { onlyOnce: true });
+        }
+
+        function startMessageCleanup() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            updateTimer();
+            timerInterval = setInterval(() => {
+                updateTimer();
+                cleanOldMessages();
+            }, 60000);
+        }
+
+        async function cleanOldMessages() {
+            if (!window.firebaseDB || !currentRoom) return;
+
+            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+            const snapshot = await new Promise(resolve => {
+                window.firebaseOnValue(messagesRef, resolve, { onlyOnce: true });
+            });
+
+            const messagesData = snapshot.val();
+            if (!messagesData) return;
+
+            const now = Date.now();
+            const oneHour = 60 * 60 * 1000;
+
+            Object.entries(messagesData).forEach(([messageId, messageData]) => {
+                if ((now - messageData.timestamp) > oneHour) {
+                    const messageRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages/${messageId}`);
+                    window.firebaseRemove(messageRef);
+                }
+            });
+        }
+
+        window.openImageModal = function(src) {
+            document.getElementById('modalImage').src = src;
+            document.getElementById('imageModal').classList.add('show');
+        };
+
+        window.closeModal = function() {
+            document.getElementById('imageModal').classList.remove('show');
+        };
+
+        window.showMenu = function() {
+            document.getElementById('menuModal').classList.add('show');
+        };
+
+        window.closeMenu = function() {
+            document.getElementById('menuModal').classList.remove('show');
+        };
+
+        window.clearChat = async function() {
+            if (!currentUser.isAdmin) {
+                alert('僅管理員可使用此功能');
+                return;
+            }
+
+            if (!confirm('確定要清空所有訊息嗎？')) {
+                return;
+            }
+
+            if (!window.firebaseDB) return;
+
+            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+            await window.firebaseRemove(messagesRef);
+
+            document.getElementById('messageTimer').style.display = 'none';
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            window.closeMenu();
+            alert('對話已清空');
+        };
+
+        window.showStats = async function() {
+            if (currentUser.nickname !== '吸鼠女') {
+                alert('僅吸鼠女可查看統計資料');
+                return;
+            }
+
+            if (!window.firebaseDB) return;
+
+            const roomsRef = window.firebaseRef(window.firebaseDB, 'rooms');
+            const snapshot = await new Promise(resolve => {
+                window.firebaseOnValue(roomsRef, resolve, { onlyOnce: true });
+            });
+
+            const roomsData = snapshot.val() || {};
+            let statsText = '=== 使用統計 ===\n\n';
+
+            Object.keys(roomsData).forEach(roomName => {
+                const room = roomsData[roomName];
+                const onlineCount = room.online ? Object.keys(room.online).length : 0;
+                const messageCount = room.messages ? Object.keys(room.messages).length : 0;
+
+                statsText += `房間：${roomName}\n`;
+                statsText += `在線人數：${onlineCount}/5\n`;
+                statsText += `訊息數量：${messageCount}\n`;
+
+                if (room.online) {
+                    statsText += '在線用戶：';
+                    const users = Object.values(room.online).map(u => u.nickname).join(', ');
+                    statsText += users + '\n';
+                }
+                statsText += '\n';
+            });
+
+            alert(statsText);
+            window.closeMenu();
+        };
+
+        window.logout = async function() {
+            if (!confirm('確定要登出嗎？')) {
+                return;
+            }
+
+            if (userPresenceRef) {
+                await window.firebaseRemove(userPresenceRef);
+                userPresenceRef = null;
+            }
+
+            if (pagePresenceRef) {
+                await window.firebaseRemove(pagePresenceRef);
+                pagePresenceRef = null;
+            }
+
+            if (messagesListener) messagesListener();
+            if (onlineListener) onlineListener();
+            if (allRoomsListener) allRoomsListener();
+            if (timerInterval) clearInterval(timerInterval);
+
+            currentUser = null;
+            currentRoom = null;
+            selectedAdmin = null;
+            selectedImages = [];
+            roomsInitialized = false;
+
+            document.getElementById('chatPage').style.display = 'none';
+            const roomsSection = document.getElementById('roomsSection');
+            roomsSection.classList.remove('hidden');
+            roomsSection.classList.add('locked');
+            document.getElementById('mainContainer').classList.remove('rooms-visible');
+            document.body.classList.remove('logged-in');
+
+            const nicknameInput = document.getElementById('nicknameInput');
+            nicknameInput.value = '';
+            nicknameInput.removeAttribute('readonly');
+            nicknameInput.classList.remove('readonly');
+
+            const passwordInput = document.getElementById('adminPassword');
+            passwordInput.value = '';
+            passwordInput.style.display = 'none';
+
+            document.getElementById('messageInput').value = '';
+            document.getElementById('imagePreviewContainer').innerHTML = '';
+            document.getElementById('clearChatBtn').style.display = 'none';
+            document.getElementById('statsBtn').style.display = 'none';
+            document.getElementById('onlineInfoDiv').style.display = 'none';
+            document.getElementById('welcomeName').textContent = '';
+
+            document.querySelectorAll('.btn-admin').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            window.closeMenu();
+        };
+
+        window.addEventListener('beforeunload', async () => {
+            try {
+                if (userPresenceRef) {
+                    await window.firebaseRemove(userPresenceRef);
+                }
+                if (pagePresenceRef) {
+                    await window.firebaseRemove(pagePresenceRef);
+                }
+            } catch (error) {
+                console.warn('清除在線狀態時發生錯誤', error);
+            }
         });
-
-        renderGallery();
-        saveImages();
-
-        window.addEventListener("resize", () => hideContextMenu());
-        window.addEventListener("scroll", () => hideContextMenu());
     </script>
 </body>
 </html>
-
