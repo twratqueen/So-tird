@@ -1,844 +1,1099 @@
+<artifact identifier="chat-room-final" type="application/vnd.ant.code" language="html" title="
+花枝鼠聊天室 - 完整版">
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>花枝鼠社群專用 - 臨時對話站</title>
+    <title>花枝鼠社群專用 - 臨時私密對話小工具</title>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, push, onValue, remove, set, onDisconnect, query, orderByChild, limitToLast } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+```
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getDatabase, ref, push, onValue, remove, set, onDisconnect, query, orderByChild,
+limitToLast, runTransaction } from
+'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyA3Ml5IrxQAX1s9W03y_yRjU1xELR_kNF8",
-            authDomain: "rat50khz.firebaseapp.com",
-            databaseURL: "https://rat50khz-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "rat50khz",
-            storageBucket: "rat50khz.firebasestorage.app",
-            messagingSenderId: "259578799109",
-            appId: "1:259578799109:web:2faaf07c2a5ca202b0686c",
-            measurementId: "G-CRM8NDPK0G"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyA3Ml5IrxQAX1s9W03y_yRjU1xELR_kNF8",
+        authDomain: "rat50khz.firebaseapp.com",
+        databaseURL: "https://rat50khz-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "rat50khz",
+        storageBucket: "rat50khz.firebasestorage.app",
+        messagingSenderId: "259578799109",
+        appId: "1:259578799109:web:2faaf07c2a5ca202b0686c",
+        measurementId: "G-CRM8NDPK0G"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
 
-        window.firebaseDB = database;
-        window.firebaseRef = ref;
-        window.firebasePush = push;
-        window.firebaseOnValue = onValue;
-        window.firebaseRemove = remove;
-        window.firebaseSet = set;
-        window.firebaseOnDisconnect = onDisconnect;
-        window.firebaseQuery = query;
-        window.firebaseOrderByChild = orderByChild;
-        window.firebaseLimitToLast = limitToLast;
-    </script>
+    window.firebaseDB = database;
+    window.firebaseRef = ref;
+    window.firebasePush = push;
+    window.firebaseOnValue = onValue;
+    window.firebaseRemove = remove;
+    window.firebaseSet = set;
+    window.firebaseOnDisconnect = onDisconnect;
+    window.firebaseQuery = query;
+    window.firebaseOrderByChild = orderByChild;
+    window.firebaseLimitToLast = limitToLast;
+    window.firebaseRunTransaction = runTransaction;
+</script>
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');
+<style>
+    @import
+url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&f
+amily=Nunito:wght@300;400;500;600;700&display=swap');
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+    }
+
+    body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 28px 18px 24px;
+        transition: background-color 0.5s;
+    }
+
+    body.logged-in {
+        align-items: flex-start;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 640px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .headline {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .headline-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .container.rooms-visible {
+        gap: 28px;
+    }
+
+    h1 {
+        font-size: 42px;
+        font-weight: 700;
+        text-align: center;
+        letter-spacing: 3px;
+        color: #5A4A3D;
+    }
+
+    h2 {
+        font-size: 26px;
+        font-weight: 400;
+        text-align: center;
+        letter-spacing: 2px;
+        color: #7A6A5D;
+    }
+
+    .lobby-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .lobby-lamp {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .lobby-lamp svg {
+        width: 16px;
+        height: 16px;
+        fill: rgba(255, 255, 255, 0.35);
+    }
+
+    .lobby-lamp.on svg {
+        fill: #4CAF50;
+        filter: drop-shadow(0 0 6px rgba(76, 175, 80, 0.45));
+    }
+
+    .lobby-status-text {
+        font-size: 14px;
+        font-weight: 600;
+        color: #F7F1EA;
+
+    }
+
+    .description {
+        text-align: left;
+        line-height: 1.9;
+        font-size: 15px;
+        padding: 0 10px;
+        color: #5A4A3D;
+    }
+
+    .warning-box {
+        border-radius: 24px;
+        padding: 14px 20px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 92%;
+    }
+
+    .warning-icon {
+        margin-right: 14px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .warning-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    .warning-text {
+        font-size: 15px;
+        font-weight: 600;
+        white-space: nowrap;
+        padding: 6px 12px;
+        border-radius: 8px;
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.86);
+        border-radius: 28px;
+        padding: 26px 24px 26px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+
+        gap: 22px;
+    }
+
+    .login-section,
+    .admin-section {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .login-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+    }
+
+    .section-title {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: #23150F;
+        white-space: nowrap;
+    }
+
+    .nickname-input,
+    .password-input {
+        background-color: #FFF;
+        border: 2px solid #D4C4B4;
+        border-radius: 12px;
+        padding: 13px 20px;
+        font-size: 15px;
+        outline: none;
+        flex: 1;
+        color: #5A4A3D;
+    }
+
+    .nickname-input::placeholder,
+    .password-input::placeholder {
+        color: #B8A89A;
+    }
+
+    .nickname-input.readonly {
+        background-color: rgba(244, 236, 229, 0.7);
+        cursor: default;
+    }
+
+    .admin-buttons {
+
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        grid-auto-rows: minmax(86px, auto);
+    }
+
+    .btn-admin {
+        background-color: #E8D4C4;
+        color: #5A4A3D;
+        border: none;
+        border-radius: 18px;
+        padding: 14px 16px;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 86px;
+        text-align: center;
+        line-height: 1.3;
+    }
+
+    .btn-admin:hover {
+        background-color: #D8C4B4;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn-admin.selected {
+        background-color: #8B5A3D;
+        color: #FFF;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        font-weight: 600;
+    }
+
+    .password-input {
+        max-width: 320px;
+        margin: 0 auto;
+        display: none;
+    }
+
+    .note-text {
+        color: #8B7355;
+        font-size: 13px;
+        text-align: center;
+    }
+
+    .login-status {
+        display: none;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: #23150F;
+        margin-top: -4px;
+    }
+
+    .version-text {
+        text-align: center;
+        color: #8B7355;
+        font-size: 13px;
+    }
+
+    .rooms-section {
+        position: relative;
+        background: rgba(255, 255, 255, 0.78);
+        border-radius: 24px;
+        padding: 26px 22px 30px;
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08);
+        margin-top: 4px;
+    }
+
+    .rooms-section.hidden {
+        display: none;
+    }
+
+    .rooms-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .room-header {
+        text-align: center;
+    }
+
+    .room-header h1 {
+        color: #23150F;
+    }
+
+    .welcome-text {
+        display: none;
+    }
+
+    .online-info {
+        display: none;
+        align-items: center;
+        color: #5A4A3D;
+        font-size: 15px;
+        margin-bottom: 18px;
+        padding: 0 5px;
+    }
+
+    .online-dot {
+        width: 11px;
+        height: 11px;
+        background-color: #4CAF50;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+
+    .rooms-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        grid-auto-rows: minmax(150px, 1fr);
+    }
+
+    .room-item {
+        background-color: #E8CFC4;
+        border-radius: 16px;
+        padding: 20px 16px 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+        cursor: default;
+        transition: all 0.3s;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+        position: relative;
+    }
+
+    .room-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+    }
+
+    .room-item:active {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+
+    }
+
+    .room-item.has-users {
+        background-color: #C4E8D4;
+    }
+
+    .room-mice {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: #5A4A3D;
+    }
+
+    .mouse-icons {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #5A4A3D;
+        min-height: 18px;
+    }
+
+    .mouse-icons svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+    }
+
+    .room-item.has-users .mouse-icons {
+        color: #4CAF50;
+    }
+
+    .room-mice-text {
+        font-size: 13px;
+    }
+
+    .room-lamp {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .room-lamp svg {
+        width: 18px;
+        height: 18px;
+        fill: #8B7355;
+    }
+
+    .room-lamp.on svg {
+        fill: #4CAF50;
+        filter: drop-shadow(0 0 6px rgba(76, 175, 80, 0.45));
+    }
+
+    .room-name {
+        color: #23150F;
+        font-size: 16px;
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .room-action {
+        margin-top: auto;
+        background: linear-gradient(135deg, #D8A776 0%, #B87A4B 100%);
+        color: #FFF;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 18px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        min-width: 120px;
+    }
+
+    .room-action:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(184, 122, 75, 0.35);
+    }
+
+    .room-action:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        box-shadow: none;
+    }
+
+    .room-create {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+        align-items: center;
+    }
+
+    .room-create input {
+        flex: 1;
+        background-color: rgba(107, 90, 61, 0.15);
+        color: #5A4A3D;
+
+        border: 2px solid rgba(107, 90, 61, 0.3);
+        border-radius: 10px;
+        padding: 11px 14px;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .room-create input::placeholder {
+        color: #B8A89A;
+    }
+
+    .room-create button {
+        background: linear-gradient(135deg, #A57B68 0%, #8C5C4A 100%);
+        color: #FFF;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .room-create button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(140, 92, 74, 0.35);
+    }
+
+    .room-create button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        box-shadow: none;
+    }
+
+    .room-item.placeholder {
+        justify-content: space-between;
+    }
+
+    .chat-page {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #F5F5F5;
+        flex-direction: column;
+
+        overflow: hidden;
+    }
+
+    .chat-header {
+        background-color: #FFF;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .icon-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .icon-button svg {
+        width: 26px;
+        height: 26px;
+        fill: #5A4A3D;
+        transition: transform 0.2s ease;
+    }
+
+    .icon-button:hover svg {
+        transform: scale(1.05);
+    }
+
+    .icon-button:focus-visible {
+        outline: 2px solid rgba(90, 74, 61, 0.6);
+        outline-offset: 2px;
+    }
+
+    .chat-header-center {
+        flex: 1;
+        text-align: center;
+    }
+
+    .room-title {
+        font-size: 18px;
+        font-weight: 600;
+
+        color: #5A4A3D;
+        margin-bottom: 3px;
+    }
+
+    .online-count {
+        font-size: 13px;
+        color: #8B7355;
+    }
+
+    .chat-header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+
+    .timer-badge {
+        background-color: #FFB347;
+        color: #5A4A3D;
+        padding: 3px 9px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px;
+        padding-bottom: 100px;
+    }
+
+    .notice-box {
+        background-color: #FFF;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 18px;
+        color: #5A4A3D;
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    .notice-box p {
+        margin: 6px 0;
+    }
+
+    .message-item {
+
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 14px;
+    }
+
+    .message-item.mine {
+        align-items: flex-end;
+    }
+
+    .message-nickname {
+        font-size: 12px;
+        color: #8B7355;
+        margin-bottom: 3px;
+        padding: 0 6px;
+    }
+
+    .admin-icon {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 6px;
+    }
+
+    .admin-icon svg {
+        width: 14px;
+        height: 14px;
+        fill: currentColor;
+    }
+
+    .message-bubble {
+        max-width: 70%;
+        padding: 11px 14px;
+        border-radius: 14px;
+        word-wrap: break-word;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .message-bubble.mine {
+        background-color: #A8D5BA;
+    }
+
+    .message-bubble.others {
+        background-color: #F0E6D6;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
+    }
 
+    .chat-input-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #FFF;
+        padding: 14px 16px;
+        border-top: 1px solid #E0E0E0;
+    }
+
+    .chat-input-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .message-input {
+        flex: 1;
+        background-color: #F5F5F5;
+        border: 2px solid #E0E0E0;
+        border-radius: 22px;
+        padding: 11px 18px;
+        font-size: 15px;
+        color: #333;
+        outline: none;
+    }
+
+    .btn-send {
+        background-color: #6B5A3D;
+        color: #E8DCC4;
+        border: none;
+        border-radius: 10px;
+        padding: 11px 22px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .modal {
+
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal.show {
+        display: flex;
+    }
+
+    .admin-actions {
+        display: none;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .admin-action-btn {
+        background-color: #6B5A3D;
+        color: #E8DCC4;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .admin-action-btn:hover {
+        background-color: #544730;
+    }
+
+    .entry-notice {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .menu-modal .modal-content {
+        background-color: #FFF;
+        border-radius: 14px;
+        padding: 28px;
+        max-width: 380px;
+
+        width: 90%;
+    }
+
+    .menu-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: #5A4A3D;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .menu-btn {
+        background-color: #6B5A3D;
+        color: #E8DCC4;
+        border: none;
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+    }
+
+    .menu-btn:hover {
+        background-color: #544730;
+    }
+
+    @media (max-width: 768px) {
         body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 40px 20px 20px;
-            transition: background-color 0.5s;
-        }
-
-        body.logged-in {
-            align-items: flex-start;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 640px;
-            display: flex;
-            flex-direction: column;
-            gap: 28px;
-        }
-
-        .container.rooms-visible {
-            gap: 48px;
+            padding-top: 32px;
         }
 
         h1 {
-            font-size: 42px;
-            font-weight: 700;
-            text-align: center;
-            letter-spacing: 3px;
-            color: #5A4A3D;
+            font-size: 34px;
         }
 
         h2 {
-            font-size: 26px;
-            font-weight: 400;
-            text-align: center;
-            letter-spacing: 2px;
-            color: #7A6A5D;
+            font-size: 22px;
         }
 
         .description {
-            text-align: left;
-            line-height: 1.9;
-            font-size: 15px;
-            padding: 0 10px;
-            color: #5A4A3D;
-        }
-
-        .warning-box {
-            border-radius: 24px;
-            padding: 14px 20px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            max-width: 92%;
-        }
-
-        .warning-icon {
-            font-size: 28px;
-            margin-right: 14px;
-            flex-shrink: 0;
-        }
-
-        .warning-text {
-            font-size: 15px;
-            font-weight: 600;
-            white-space: nowrap;
-            padding: 6px 12px;
-            border-radius: 8px;
-        }
-
-        .login-card {
-            background: rgba(255, 255, 255, 0.86);
-            border-radius: 28px;
-            padding: 28px 26px 32px;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
-            display: flex;
-            flex-direction: column;
-            gap: 28px;
-        }
-
-        .login-section,
-        .admin-section {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
+            font-size: 14px;
         }
 
         .login-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
+            flex-direction: column;
+
+            gap: 12px;
         }
 
         .section-title {
-            font-size: 22px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            color: #5A4A3D;
-            white-space: nowrap;
+            width: 100%;
+            text-align: center;
         }
 
-        .nickname-input,
-        .password-input {
-            background-color: #FFF;
-            border: 2px solid #D4C4B4;
-            border-radius: 12px;
-            padding: 13px 20px;
-            font-size: 15px;
-            outline: none;
-            flex: 1;
-            color: #5A4A3D;
+        .nickname-input {
+            width: 100%;
         }
 
-        .nickname-input::placeholder,
-        .password-input::placeholder {
-            color: #B8A89A;
-        }
-
-        .nickname-input.readonly {
-            background-color: rgba(244, 236, 229, 0.7);
-            cursor: default;
+        .login-card {
+            padding: 22px 18px 24px;
+            gap: 18px;
         }
 
         .admin-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .btn-admin {
-            background-color: #E8D4C4;
-            color: #5A4A3D;
-            border: none;
-            border-radius: 22px;
-            padding: 13px 20px;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-        .btn-admin:hover {
-            background-color: #D8C4B4;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .btn-admin.selected {
-            background-color: #8B5A3D;
-            color: #FFF;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-            font-weight: 600;
-        }
-
-        .password-input {
-            max-width: 320px;
-            margin: 0 auto;
-            display: none;
-        }
-
-        .btn-main-action {
-            background: linear-gradient(135deg, #6B5A3D 0%, #8B7355 100%);
-            color: #FDF1D8;
-            border: none;
-            border-radius: 18px;
-            padding: 15px 26px;
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            cursor: pointer;
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
-            box-shadow: 0 10px 24px rgba(107, 90, 61, 0.35);
-        }
-
-        .btn-main-action:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 32px rgba(107, 90, 61, 0.45);
-        }
-
-        .btn-main-action:active {
-            transform: translateY(0);
-        }
-
-        .note-text {
-            color: #8B7355;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .version-text {
-            text-align: center;
-            color: #8B7355;
-            font-size: 13px;
-        }
-
-        .rooms-section {
-            display: none;
-            background: rgba(255, 255, 255, 0.78);
-            border-radius: 28px;
-            padding: 32px 28px 36px;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
-        }
-
-        .room-header {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .room-hint {
-            color: #7A6A5D;
-            font-size: 16px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .welcome-text {
-            color: #8B7355;
-            font-size: 17px;
-            margin-top: 8px;
-        }
-
-        .online-info {
-            display: none;
-            align-items: center;
-            color: #5A4A3D;
-            font-size: 15px;
-            margin-bottom: 18px;
-            padding: 0 5px;
-        }
-
-        .online-dot {
-            width: 11px;
-            height: 11px;
-            background-color: #4CAF50;
-            border-radius: 50%;
-            margin-right: 8px;
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
         }
 
         .rooms-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+
+        .rooms-section {
+            padding: 22px 18px 26px;
+            border-radius: 20px;
+        }
+
+        .rooms-content {
+            gap: 16px;
+        }
+
+        .rooms-content h1 {
+            font-size: 28px !important;
         }
 
         .room-item {
-            aspect-ratio: 1;
-            background-color: #E8CFC4;
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
+            min-height: 140px;
+        }
+    }
+
+    @media (max-width: 540px) {
+        .headline-row {
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-            position: relative;
-        }
-
-        .room-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.18);
-        }
-
-        .room-item:active {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-
-        .room-item.has-users {
-            background-color: #C4E8D4;
-        }
-
-        .room-dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            margin-bottom: 12px;
-            background-color: #8B7355;
-        }
-
-        .room-dot.online {
-            background-color: #4CAF50;
-            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
-        }
-
-        .room-name {
-            color: #5A4A3D;
-            font-size: 16px;
-            text-align: center;
-            font-weight: 500;
-            margin-bottom: 6px;
-        }
-
-        .room-count {
-            color: #5A4A3D;
-            font-size: 12px;
-        }
-
-        .create-room-section {
-            display: flex;
             gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
         }
 
-        .room-name-input {
-            flex: 1 1 230px;
-            background-color: rgba(107, 90, 61, 0.15);
-            color: #5A4A3D;
-            border: 2px solid rgba(107, 90, 61, 0.3);
-            border-radius: 10px;
-            padding: 13px 18px;
-            font-size: 15px;
-            outline: none;
-        }
-
-        .room-name-input::placeholder {
-            color: #B8A89A;
-        }
-
-        .btn-create-room {
-            flex: 1 1 220px;
-            background: linear-gradient(135deg, #E8A87C 0%, #E27D60 100%);
-            color: #FFF;
-            border: none;
-            border-radius: 14px;
-            padding: 13px 26px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(226, 125, 96, 0.3);
-            letter-spacing: 1px;
-        }
-
-        .btn-create-room:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(226, 125, 96, 0.4);
-        }
-
-        .btn-create-room:active {
-            transform: translateY(0);
-        }
-
-        .chat-page {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #F5F5F5;
-        }
-
-        .chat-header {
-            background-color: #FFF;
-            padding: 14px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        }
-
-        .btn-back {
-            background: none;
-            border: none;
-            font-size: 26px;
-            color: #5A4A3D;
-            cursor: pointer;
-            padding: 0;
-            width: 35px;
-        }
-
-        .chat-header-center {
-            flex: 1;
-            text-align: center;
-        }
-
-        .room-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #5A4A3D;
-            margin-bottom: 3px;
-        }
-
-        .online-count {
-            font-size: 13px;
-            color: #8B7355;
-        }
-
-        .chat-header-right {
-            width: 35px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            justify-content: flex-end;
-        }
-
-        .timer-badge {
-            background-color: #FFB347;
-            color: #5A4A3D;
-            padding: 3px 9px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .btn-menu {
-            background: none;
-            border: none;
-            font-size: 26px;
-            color: #5A4A3D;
-            cursor: pointer;
-            padding: 0;
-        }
-
-        .messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 18px;
-            padding-bottom: 100px;
-        }
-
-        .notice-box {
-            background-color: #FFF;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 18px;
-            color: #5A4A3D;
-            font-size: 13px;
-            line-height: 1.7;
-        }
-
-        .notice-box p {
-            margin: 6px 0;
-        }
-
-        .message-item {
-            display: flex;
+        .room-create {
             flex-direction: column;
-            margin-bottom: 14px;
+            align-items: stretch;
         }
 
-        .message-item.mine {
-            align-items: flex-end;
-        }
-
-        .message-nickname {
-            font-size: 12px;
-            color: #8B7355;
-            margin-bottom: 3px;
-            padding: 0 6px;
-        }
-
-        .message-bubble {
-            max-width: 70%;
-            padding: 11px 14px;
-            border-radius: 14px;
-            word-wrap: break-word;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .message-bubble.mine {
-            background-color: #A8D5BA;
-        }
-
-        .message-bubble.others {
-            background-color: #F0E6D6;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message-images {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 6px;
-        }
-
-        .message-image {
-            width: 90px;
-            height: 90px;
-            object-fit: cover;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .chat-input-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
+        .room-create button {
             width: 100%;
-            background-color: #FFF;
-            padding: 14px 16px;
-            border-top: 1px solid #E0E0E0;
         }
+    }
+</style>
+```
 
-        .image-previews {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-
-        .image-preview-item {
-            position: relative;
-        }
-
-        .image-preview {
-            width: 55px;
-            height: 55px;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-
-        .btn-remove-image {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 18px;
-            height: 18px;
-            background-color: #FF5252;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 12px;
-            line-height: 1;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .chat-input-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .btn-image {
-            background: none;
-            border: none;
-            font-size: 26px;
-            cursor: pointer;
-            padding: 0;
-            flex-shrink: 0;
-        }
-
-        .message-input {
-            flex: 1;
-            background-color: #F5F5F5;
-            border: 2px solid #E0E0E0;
-            border-radius: 22px;
-            padding: 11px 18px;
-            font-size: 15px;
-            color: #333;
-            outline: none;
-        }
-
-        .btn-send {
-            background-color: #6B5A3D;
-            color: #E8DCC4;
-            border: none;
-            border-radius: 10px;
-            padding: 11px 22px;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-image {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-        }
-
-        .menu-modal .modal-content {
-            background-color: #FFF;
-            border-radius: 14px;
-            padding: 28px;
-            max-width: 380px;
-            width: 90%;
-        }
-
-        .menu-title {
-            font-size: 22px;
-            font-weight: 600;
-            color: #5A4A3D;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .menu-btn {
-            background-color: #6B5A3D;
-            color: #E8DCC4;
-            border: none;
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 10px;
-            transition: all 0.3s;
-        }
-
-        .menu-btn:hover {
-            background-color: #544730;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding-top: 32px;
-            }
-
-            h1 {
-                font-size: 34px;
-            }
-
-            h2 {
-                font-size: 22px;
-            }
-
-            .description {
-                font-size: 14px;
-            }
-
-            .login-row {
-                flex-direction: column;
-                gap: 12px;
-            }
-
-            .section-title {
-                width: 100%;
-                text-align: center;
-            }
-
-            .nickname-input {
-                width: 100%;
-            }
-
-            .admin-buttons {
-                grid-template-columns: repeat(1, minmax(0, 1fr));
-            }
-
-            .rooms-grid {
-                grid-template-columns: repeat(1, minmax(0, 1fr));
-            }
-        }
-    </style>
 </head>
 <body>
     <div id="mainContainer" class="container">
-        <div>
+        <div class="headline">
             <h1>花枝鼠社群專用</h1>
-            <h2>臨時對話站</h2>
-        </div>
-
-        <div class="description">
-            <p>有時候突然跟成員想要獨說兩句，但是又不方便留 Line 怎麼辦🥲</p>
-            <p>（有些人真的習慣 Line 好友名單保持整潔啊）</p>
-            <p>現在社群提供成員一個不用換 Line 也能講悄悄話的地方。</p>
-        </div>
-
-        <div class="warning-box" id="warningBox">
-            <div class="warning-icon">⚠️</div>
-            <div class="warning-text" id="warningText">提高警覺、嚴防詐騙、勿提供個資/轉帳</div>
-        </div>
-
-        <div class="login-card">
-            <div class="login-section">
-                <div class="login-row">
-                    <div class="section-title">一般成員</div>
-                    <input type="text" id="nicknameInput" class="nickname-input" placeholder="輸入暱稱">
+            <div class="headline-row">
+                <h2>臨時私密對話小工具</h2>
+                <div class="lobby-indicator" id="lobbyIndicator">
+                    <span class="lobby-lamp" id="lobbyLamp" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"
+focusable="false">
+                            <circle cx="8" cy="8" r="6" />
+                        </svg>
+                    </span>
+                    <span class="lobby-status-text" id="lobbyStatusText" aria-live="polite">大廳沒有
+老鼠</span>
                 </div>
             </div>
+        </div>
 
-            <div class="admin-section">
-                <div class="section-title" style="text-align: center;">花枝鼠管理員</div>
-                <div class="admin-buttons">
-                    <button onclick="selectAdmin(event, '吸鼠女')" class="btn-admin" data-admin="吸鼠女">吸鼠女</button>
-                    <button onclick="selectAdmin(event, '大白美妙')" class="btn-admin" data-admin="大白美妙">大白美妙</button>
-                    <button onclick="selectAdmin(event, '采瑄')" class="btn-admin" data-admin="采瑄">采瑄</button>
-                    <button onclick="selectAdmin(event, 'Jinx')" class="btn-admin" data-admin="Jinx">Jinx</button>
-                    <button onclick="selectAdmin(event, '芒果')" class="btn-admin" data-admin="芒果">芒果</button>
+```
+    <div class="description">
+        <p>有時候想跟群友單獨說兩句，但是又不方便留Line怎麼辦？</p>
+        <p>真的有人喜歡Line 好友名單保持整潔啊🥲</p>
+        <p>現在社群提供成員一個不用換 Line 也能講悄悄話的地方。</p>
+    </div>
+
+    <div class="warning-box" id="warningBox">
+        <div class="warning-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <path fill="currentColor" d="M12 2.5a1.5 1.5 0 0 1 1.32.83l8.16 15.38A1.5 1.5 0 0
+1 20.16 21H3.84a1.5 1.5 0 0 1-1.32-2.29l8.16-15.38A1.5 1.5 0 0 1 12 2.5zm0 2.22L4.53
+19.5h14.94L12 4.72zm-.01 4.03c.52 0 .94.42.94.94v4.28a.94.94 0 1 1-1.88
+0v-4.28c0-.52.42-.94.94-.94zm0 7.14a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z"/>
+            </svg>
+
+        </div>
+        <div class="warning-text" id="warningText">提高警覺、嚴防詐騙、勿提供個資/轉帳
+</div>
+    </div>
+
+    <div class="login-card">
+        <div class="login-section">
+            <div class="login-row">
+                <div class="section-title">一般成員</div>
+                <input type="text" id="nicknameInput" class="nickname-input" placeholder="輸入
+暱稱">
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <div class="section-title" style="text-align: center;">管理員</div>
+            <div class="admin-buttons">
+                <button onclick="selectAdmin(event, '吸鼠女')" class="btn-admin" data-admin="吸
+鼠女">吸鼠女</button>
+                <button onclick="selectAdmin(event, '大白美妙')" class="btn-admin" data-admin="
+大白美妙">大白美妙</button>
+                <button onclick="selectAdmin(event, '采瑄')" class="btn-admin" data-admin="采瑄
+">采瑄</button>
+                <button onclick="selectAdmin(event, 'Jinx')" class="btn-admin"
+data-admin="Jinx">Jinx</button>
+                <button onclick="selectAdmin(event, '芒果')" class="btn-admin" data-admin="芒果
+">芒果</button>
+            </div>
+            <input type="password" id="adminPassword" class="password-input" placeholder="
+輸入密碼">
+            <div id="loginStatus" class="login-status" aria-live="polite"></div>
+        </div>
+
+        <div id="roomsSection" class="rooms-section hidden">
+            <div class="rooms-content">
+                <div class="room-header">
+                    <h1 style="font-size: 34px; margin-bottom: 6px;">選擇鼠窩</h1>
+                    <div class="welcome-text">歡迎 <strong id="welcomeName"></strong></div>
                 </div>
-                <input type="password" id="adminPassword" class="password-input" placeholder="輸入密碼">
-                <button id="enterRoomsBtn" class="btn-main-action" onclick="enterRooms()">加入/創建鼠窩</button>
-                <div class="note-text">一般成員無需輸入密碼</div>
+
+                <div class="rooms-grid" id="roomsList">
+                    <div class="room-item" data-room="溫溫鼠窩">
+                        <div class="room-mice">
+                            <span class="room-lamp" aria-hidden="true">
+                                <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"
+focusable="false">
+                                    <circle cx="8" cy="8" r="6" />
+                                </svg>
+
+                            </span>
+                            <div class="mouse-icons" aria-hidden="true"></div>
+                            <span class="room-mice-text">0 隻老鼠</span>
+                        </div>
+                        <div class="room-name">溫溫鼠窩</div>
+                        <button type="button" class="room-action" data-room="溫溫鼠窩">
+```
+```html
+加入</button>
+                        </div>
+                        <div class="room-item placeholder" data-room="empty1" data-slot="1">
+                            <div class="room-mice">
+                                <span class="room-lamp" aria-hidden="true">
+                                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"
+focusable="false">
+                                        <circle cx="8" cy="8" r="6" />
+                                    </svg>
+                                </span>
+                                <div class="mouse-icons" aria-hidden="true"></div>
+                                <span class="room-mice-text">0 隻老鼠</span>
+                            </div>
+                            <div class="room-name">鼠窩沒鼠</div>
+                            <div class="room-create">
+                                <input type="text" id="roomSlotInput1" data-slot="1" placeholder="輸入
+鼠窩名稱..." disabled>
+                                <button type="button" class="room-create-btn" data-slot="1" disabled>創
+建鼠窩</button>
+                            </div>
+                            <button type="button" class="room-action" data-room="" style="display:
+none;" disabled>加入</button>
+                        </div>
+                        <div class="room-item placeholder" data-room="empty2" data-slot="2">
+                            <div class="room-mice">
+                                <span class="room-lamp" aria-hidden="true">
+                                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"
+focusable="false">
+                                        <circle cx="8" cy="8" r="6" />
+                                    </svg>
+                                </span>
+                                <div class="mouse-icons" aria-hidden="true"></div>
+                                <span class="room-mice-text">0 隻老鼠</span>
+                            </div>
+                            <div class="room-name">鼠窩沒鼠</div>
+                            <div class="room-create">
+                                <input type="text" id="roomSlotInput2" data-slot="2" placeholder="輸入
+鼠窩名稱..." disabled>
+                                <button type="button" class="room-create-btn" data-slot="2" disabled>創
+建鼠窩</button>
+
+                            </div>
+                            <button type="button" class="room-action" data-room="" style="display:
+none;" disabled>加入</button>
+                        </div>
+                        <div class="room-item placeholder" data-room="empty3" data-slot="3">
+                            <div class="room-mice">
+                                <span class="room-lamp" aria-hidden="true">
+                                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"
+focusable="false">
+                                        <circle cx="8" cy="8" r="6" />
+                                    </svg>
+                                </span>
+                                <div class="mouse-icons" aria-hidden="true"></div>
+                                <span class="room-mice-text">0 隻老鼠</span>
+                            </div>
+                            <div class="room-name">鼠窩沒鼠</div>
+                            <div class="room-create">
+                                <input type="text" id="roomSlotInput3" data-slot="3" placeholder="輸入
+鼠窩名稱..." disabled>
+                                <button type="button" class="room-create-btn" data-slot="3" disabled>創
+建鼠窩</button>
+                            </div>
+                            <button type="button" class="room-action" data-room="" style="display:
+none;" disabled>加入</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="version-text">2025/10/03 創建 v1.3.1</div>
-
-        <div id="roomsSection" class="rooms-section">
-            <div class="room-header">
-                <h1 style="font-size: 34px; margin-bottom: 6px;">選擇鼠窩</h1>
-                <div class="welcome-text">歡迎 <strong id="welcomeName"></strong></div>
-            </div>
-
-            <div class="room-hint">選擇鼠窩或創建鼠窩</div>
-
-            <div class="online-info" id="onlineInfoDiv">
-                <div class="online-dot"></div>
-                <span>在線人數：<strong id="totalOnline">0</strong></span>
-            </div>
-
-            <div class="rooms-grid" id="roomsList">
-                <div class="room-item" onclick="enterRoom('溫溫鼠窩')" data-room="溫溫鼠窩">
-                    <div class="room-dot"></div>
-                    <div class="room-name">溫溫鼠窩</div>
-                    <div class="room-count"></div>
-                </div>
-                <div class="room-item" data-room="empty1">
-                    <div class="room-dot"></div>
-                    <div class="room-name">鼠窩沒鼠</div>
-                    <div class="room-count"></div>
-                </div>
-                <div class="room-item" data-room="empty2">
-                    <div class="room-dot"></div>
-                    <div class="room-name">鼠窩沒鼠</div>
-                    <div class="room-count"></div>
-                </div>
-                <div class="room-item" data-room="empty3">
-                    <div class="room-dot"></div>
-                    <div class="room-name">鼠窩沒鼠</div>
-                    <div class="room-count"></div>
-                </div>
-            </div>
-
-            <div class="create-room-section">
-                <input type="text" id="roomNameInput" class="room-name-input" placeholder="輸入鼠窩名稱...">
-                <button onclick="createOrJoinRoom()" class="btn-create-room">創建/加入鼠窩</button>
-            </div>
-        </div>
     </div>
 
     <div id="chatPage" class="chat-page">
         <div class="chat-header">
-            <button class="btn-back" onclick="backToRooms()">←</button>
+            <button class="btn-back icon-button" onclick="backToRooms()" aria-label="返回房間
+列表">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                    <path fill="currentColor" d="M15.53 4.47a.75.75 0 0 1 0 1.06L9.06 12l6.47
+6.47a.75.75 0 0 1-1.06 1.06l-7-7a.75.75 0 0 1 0-1.06l7-7a.75.75 0 0 1 1.06 0z"/>
+                </svg>
+            </button>
             <div class="chat-header-center">
                 <div class="room-title" id="currentRoomName"></div>
                 <div class="online-count">在線：<span id="roomOnlineCount">0</span>/5</div>
             </div>
             <div class="chat-header-right">
                 <span class="timer-badge" id="messageTimer" style="display: none;"></span>
-                <button class="btn-menu" onclick="showMenu()">⋮</button>
+
+                <div class="admin-actions" id="adminActions">
+                    <button type="button" class="admin-action-btn" id="clearChatBtn"
+onclick="clearChat()">清空對話</button>
+                    <button type="button" class="admin-action-btn" id="statsBtn"
+onclick="showStats()">統計人次</button>
+                </div>
+                <button class="btn-menu icon-button" onclick="showMenu()" aria-label="開啟選單
+">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
+focusable="false">
+                        <path fill="currentColor" d="M12 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm0
+8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm0 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                    </svg>
+                </button>
             </div>
         </div>
 
         <div class="messages-container" id="messagesContainer">
             <div class="notice-box">
-                <p>📢 訊息會在發送 1 小時後自動清除，圖片亦同</p>
-                <p>🖼️ 傳圖每次最多 3 張</p>
-                <p>📁 不支援檔案上傳</p>
-                <p>🐛 若發現 bug，請告訴我</p>
+                <p id="entryNotice" class="entry-notice"></p>
+                <p><strong>提醒：</strong>訊息會在發送 1 小時後自動清除</p>
+                <p>文字與圖示僅提供臨時交流，請勿外傳</p>
+                <p>傳訊禮貌請維持，請勿於此進行金錢往來</p>
+                <p>當所有成員離開此聊天室時，系統會自動清空對話記錄</p>
                 <p style="margin-top: 10px;"><strong>最後提醒：</strong></p>
                 <p>1. 請勿在此向他人借錢</p>
                 <p>2. 請勿在此借錢給他人</p>
@@ -848,41 +1103,39 @@
         </div>
 
         <div class="chat-input-container">
-            <div class="image-previews" id="imagePreviewContainer"></div>
             <div class="chat-input-row">
-                <input type="file" id="imageInput" accept="image/*" multiple style="display: none;" onchange="handleImageSelect(event)">
-                <button class="btn-image" onclick="document.getElementById('imageInput').click()">📷</button>
-                <input type="text" id="messageInput" class="message-input" placeholder="輸入訊息..." onkeypress="handleKeyPress(event)">
+                <input type="text" id="messageInput" class="message-input" placeholder="輸入訊
+息..." onkeypress="handleKeyPress(event)">
                 <button class="btn-send" onclick="sendMessage()">發送</button>
             </div>
         </div>
     </div>
 
-    <div id="imageModal" class="modal" onclick="closeModal()">
-        <img id="modalImage" class="modal-image">
-    </div>
-
     <div id="menuModal" class="modal menu-modal" onclick="closeMenu()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="menu-title">選單</div>
-            <button onclick="clearChat()" class="menu-btn" id="clearChatBtn" style="display: none;">清空對話</button>
-            <button onclick="showStats()" class="menu-btn" id="statsBtn" style="display: none;">使用統計</button>
             <button onclick="logout()" class="menu-btn">登出</button>
         </div>
     </div>
 
-    <script type="module">
+    <script type="module">
         let currentUser = null;
         let currentRoom = null;
-        let selectedImages = [];
         let selectedAdmin = null;
-        let timerInterval = null;
+        let countdownInterval = null;
+        let cleanupInterval = null;
+        let messageExpiryTimestamp = null;
         let messagesListener = null;
         let onlineListener = null;
         let allRoomsListener = null;
         let userPresenceRef = null;
         let pagePresenceRef = null;
         let roomsInitialized = false;
+        let lobbyListener = null;
+        let visitRecorded = false;
+        let latestRoomsData = {};
+        let isLobbyPresenceActive = false;
+        const pendingRoomClears = new Map();
 
         const adminPasswords = {
             '吸鼠女': '444',
@@ -892,19 +1145,16 @@
             'Jinx': 'jinx'
         };
 
-        const colorSchemes = [
-            { bg: '#A67C82', text: '#FFFFFF' },
-            { bg: '#8B7E74', text: '#FFFFFF' },
-            { bg: '#7A6C6E', text: '#FFFFFF' },
-            { bg: '#6B8E7F', text: '#FFFFFF' },
-            { bg: '#8B7367', text: '#FFFFFF' },
-            { bg: '#7E6D6D', text: '#FFFFFF' },
-            { bg: '#FFD6E8', text: '#5A4A3D' },
-            { bg: '#C9E4DE', text: '#5A4A3D' },
-            { bg: '#FFF4E0', text: '#5A4A3D' },
-            { bg: '#E5D4ED', text: '#5A4A3D' },
-            { bg: '#FFE5CC', text: '#5A4A3D' },
-            { bg: '#D4E4F7', text: '#5A4A3D' }
+        const lobbySessionId = `lobby_${Date.now()}_${Math.random().toString(36).slice(2,
+9)}`;
+
+        const morandiSchemes = [
+            { bg: '#4B3A41', text: '#F7F1EA' },
+            { bg: '#3F4856', text: '#F4EFE9' },
+            { bg: '#4A4F46', text: '#F6F1EB' },
+            { bg: '#4C3F4F', text: '#F5EFE7' },
+            { bg: '#3D4D4F', text: '#F3EDE6' },
+            { bg: '#4F433D', text: '#F6F0E9' }
         ];
 
         const warningStyles = [
@@ -913,17 +1163,186 @@
             { bg: '#000000', color: '#FFFFFF' }
         ];
 
-        const randomScheme = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
-        const randomWarning = warningStyles[Math.floor(Math.random() * warningStyles.length)];
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+
+        async function initializeLobbyPresence() {
+
+            if (!window.firebaseDB || isLobbyPresenceActive) {
+                return;
+            }
+
+            try {
+                pagePresenceRef = window.firebaseRef(window.firebaseDB,
+`pageOnline/${lobbySessionId}`);
+                await window.firebaseSet(pagePresenceRef, {
+                    nickname: '訪客',
+                    isAdmin: false,
+                    timestamp: Date.now()
+                });
+                window.firebaseOnDisconnect(pagePresenceRef).remove();
+                isLobbyPresenceActive = true;
+            } catch (error) {
+                console.warn('無法建立大廳狀態', error);
+            }
+        }
+
+        async function updateLobbyPresence() {
+            if (!window.firebaseDB) {
+                return;
+            }
+
+            if (!pagePresenceRef) {
+                await initializeLobbyPresence();
+            }
+
+            if (!pagePresenceRef) {
+                return;
+            }
+
+            const payload = currentUser ? {
+                nickname: currentUser.nickname,
+                isAdmin: currentUser.isAdmin,
+                timestamp: Date.now()
+            } : {
+                nickname: '訪客',
+                isAdmin: false,
+                timestamp: Date.now()
+            };
+
+            try {
+                await window.firebaseSet(pagePresenceRef, payload);
+            } catch (error) {
+                console.warn('更新大廳狀態失敗', error);
+            }
+        }
+
+        function createCrownIcon() {
+            const svg = document.createElementNS(SVG_NS, 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('aria-hidden', 'true');
+            svg.setAttribute('focusable', 'false');
+            const path = document.createElementNS(SVG_NS, 'path');
+            path.setAttribute('d', 'M4 7.5l3.5 3 2.5-4 2.5 4 3.5-3 4 6.5v5a1 1 0 0 1-1 1H5a1 1 0 0
+1-1-1v-5l0-0.02L4 7.5zm2 10.5h12v-3.93l-2.79-4.54-2.83 2.42-2.38-3.8-2.38 3.8-2.83-2.42L6
+14.07V18z');
+            path.setAttribute('fill', 'currentColor');
+            svg.appendChild(path);
+            return svg;
+        }
+
+        function createMouseIcon() {
+            const svg = document.createElementNS(SVG_NS, 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('aria-hidden', 'true');
+            svg.setAttribute('focusable', 'false');
+
+            const tail = document.createElementNS(SVG_NS, 'path');
+            tail.setAttribute('d', 'M17 14c2.2 1 3.5 2.4 3.5 4 0 1.1-.7 1.9-1.8 1.9-1
+0-1.6-.6-1.6-1.4');
+            tail.setAttribute('fill', 'none');
+            tail.setAttribute('stroke', 'currentColor');
+            tail.setAttribute('stroke-width', '1.4');
+            tail.setAttribute('stroke-linecap', 'round');
+            tail.setAttribute('stroke-linejoin', 'round');
+
+            const body = document.createElementNS(SVG_NS, 'ellipse');
+            body.setAttribute('cx', '12');
+            body.setAttribute('cy', '14');
+            body.setAttribute('rx', '7');
+            body.setAttribute('ry', '6');
+            body.setAttribute('fill', 'currentColor');
+
+            const earLeft = document.createElementNS(SVG_NS, 'circle');
+            earLeft.setAttribute('cx', '8.2');
+            earLeft.setAttribute('cy', '9');
+            earLeft.setAttribute('r', '2.4');
+            earLeft.setAttribute('fill', 'currentColor');
+
+            const earRight = document.createElementNS(SVG_NS, 'circle');
+            earRight.setAttribute('cx', '15.8');
+            earRight.setAttribute('cy', '9');
+            earRight.setAttribute('r', '2.4');
+            earRight.setAttribute('fill', 'currentColor');
+
+            const nose = document.createElementNS(SVG_NS, 'circle');
+            nose.setAttribute('cx', '19');
+            nose.setAttribute('cy', '13');
+            nose.setAttribute('r', '1.1');
+            nose.setAttribute('fill', 'currentColor');
+
+            svg.appendChild(tail);
+            svg.appendChild(earLeft);
+            svg.appendChild(earRight);
+            svg.appendChild(body);
+            svg.appendChild(nose);
+            return svg;
+        }
+
+        const randomScheme = morandiSchemes[Math.floor(Math.random() *
+morandiSchemes.length)];
+        const randomWarning = warningStyles[Math.floor(Math.random() *
+warningStyles.length)];
 
         document.body.style.backgroundColor = randomScheme.bg;
-        document.querySelectorAll('h1, h2, .section-title, .description, .note-text, .version-text, .room-hint, .welcome-text').forEach(el => {
+
+        document.querySelectorAll('h1, h2, .description, .description p, .version-text').forEach(el
+=> {
             el.style.color = randomScheme.text;
         });
 
         const warningText = document.getElementById('warningText');
         warningText.style.backgroundColor = randomWarning.bg;
         warningText.style.color = randomWarning.color;
+
+        setRoomControlsEnabled(false);
+        initializeLobbyPresence();
+        listenToLobbyPresence();
+        listenToAllRooms();
+
+        function updateLoginStatus() {
+            const statusEl = document.getElementById('loginStatus');
+            if (!statusEl) return;
+
+            if (currentUser && currentUser.isAdmin) {
+                statusEl.textContent = `登入身分：管理員（${currentUser.nickname}）`;
+                statusEl.style.display = 'block';
+            } else {
+                statusEl.textContent = '';
+                statusEl.style.display = 'none';
+            }
+        }
+
+        function setRoomControlsEnabled(enabled) {
+            const roomsSection = document.getElementById('roomsSection');
+            if (roomsSection) {
+                if (enabled) {
+                    roomsSection.classList.remove('hidden');
+                } else {
+                    roomsSection.classList.add('hidden');
+                }
+            }
+
+            document.querySelectorAll('.room-create input').forEach(input => {
+                input.disabled = !enabled;
+                if (!enabled) {
+                    input.value = '';
+                }
+            });
+
+            document.querySelectorAll('.room-create button').forEach(btn => {
+                btn.disabled = !enabled;
+            });
+
+            document.querySelectorAll('.room-action').forEach(btn => {
+                const hasRoom = btn.dataset.room && btn.dataset.room !== '';
+                const isFull = btn.dataset.full === '1';
+                btn.disabled = !enabled || !hasRoom || isFull;
+            });
+
+            if (latestRoomsData && Object.keys(latestRoomsData).length > 0) {
+                updateRoomsList(latestRoomsData);
+            }
+        }
 
         function ensureUserProfile() {
             if (currentUser) {
@@ -937,11 +1356,11 @@
 
             if (selectedAdmin) {
                 if (!password) {
-                    alert('請輸入密碼');
+                    alert('請輸入暱稱或選擇身分並填入密碼');
                     return false;
                 }
 
-                if (password !== adminPasswords[selectedAdmin]) {
+                if (password !== adminPasswords[selectedAdmin]) {
                     alert('密碼錯誤');
                     return false;
                 }
@@ -953,7 +1372,7 @@
                 };
             } else {
                 if (!nickname) {
-                    alert('請輸入暱稱');
+                    alert('請輸入暱稱或選擇身分並填入密碼');
                     return false;
                 }
 
@@ -971,9 +1390,12 @@
             passwordInput.style.display = 'none';
             passwordInput.value = '';
 
-            document.querySelectorAll('.btn-admin').forEach(btn => btn.classList.remove('selected'));
+            document.querySelectorAll('.btn-admin').forEach(btn =>
+btn.classList.remove('selected'));
             selectedAdmin = null;
 
+            updateLobbyPresence();
+            updateLoginStatus();
             return true;
         }
 
@@ -981,36 +1403,37 @@
             const roomsSection = document.getElementById('roomsSection');
             const mainContainer = document.getElementById('mainContainer');
 
-            roomsSection.style.display = 'block';
+            roomsSection.classList.remove('hidden');
             document.body.classList.add('logged-in');
             mainContainer.classList.add('rooms-visible');
             document.getElementById('welcomeName').textContent = currentUser.nickname;
 
-            if (!roomsInitialized) {
-                if (window.firebaseDB) {
-                    pagePresenceRef = window.firebaseRef(window.firebaseDB, `pageOnline/${currentUser.id}`);
-                    await window.firebaseSet(pagePresenceRef, {
-                        nickname: currentUser.nickname,
-                        isAdmin: currentUser.isAdmin,
-                        timestamp: Date.now()
-                    });
-                    window.firebaseOnDisconnect(pagePresenceRef).remove();
-                }
+            setRoomControlsEnabled(true);
 
+            if (!roomsInitialized) {
                 listenToAllRooms();
                 roomsInitialized = true;
+            }
+
+            if (window.firebaseDB) {
+                await updateLobbyPresence();
+                await recordVisit();
             }
 
             roomsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        window.enterRooms = async function() {
+        async function attemptLogin() {
+            if (currentUser) {
+                return;
+            }
+
             if (!ensureUserProfile()) {
                 return;
             }
 
             await showRoomsSection();
-        };
+        }
 
         window.selectAdmin = function(event, adminName) {
             if (currentUser) {
@@ -1033,11 +1456,10 @@
                 return;
             }
 
-            const isAdminButton = event.target.classList.contains('btn-admin');
+            const isAdminButton = event.target.classList.contains('btn-admin');
             const isPasswordInput = event.target.id === 'adminPassword';
-            const isActionButton = event.target.id === 'enterRoomsBtn';
 
-            if (!isAdminButton && !isPasswordInput && !isActionButton) {
+            if (!isAdminButton && !isPasswordInput) {
                 document.querySelectorAll('.btn-admin').forEach(btn => {
                     btn.classList.remove('selected');
                 });
@@ -1046,6 +1468,27 @@
                 passwordInput.style.display = 'none';
                 passwordInput.value = '';
             }
+        });
+
+        document.getElementById('nicknameInput').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                attemptLogin();
+            }
+        });
+
+        document.getElementById('adminPassword').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                attemptLogin();
+            }
+        });
+
+        document.querySelectorAll('.room-create-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const slot = button.getAttribute('data-slot');
+                window.createRoomFromSlot(slot);
+            });
         });
 
         function listenToAllRooms() {
@@ -1060,86 +1503,174 @@
             allRoomsListener = window.firebaseOnValue(roomsRef, (snapshot) => {
                 const roomsData = snapshot.val() || {};
                 updateRoomsList(roomsData);
-            });
+
+            });
         }
 
         function updateRoomsList(roomsData) {
-            let totalOnline = 0;
-            const customRooms = [];
+            latestRoomsData = roomsData || {};
 
-            Object.keys(roomsData).forEach(roomName => {
-                if (roomName !== '溫溫鼠窩') {
-                    customRooms.push(roomName);
-                }
-            });
+            const customRooms = Object.keys(latestRoomsData).filter(roomName =>
+roomName !== '溫溫鼠窩');
 
-            Object.keys(roomsData).forEach(roomName => {
-                const roomData = roomsData[roomName];
-                const onlineCount = roomData.online ? Object.keys(roomData.online).length : 0;
-                totalOnline += onlineCount;
-            });
-
-            const defaultRoomData = roomsData['溫溫鼠窩'] || {};
-            const defaultOnline = defaultRoomData.online ? Object.keys(defaultRoomData.online).length : 0;
-
-            const defaultRoomElement = document.querySelector('[data-room="溫溫鼠窩"]');
+            const defaultRoomElement = document.querySelector('#roomsList [data-room="溫溫
+鼠窩"]');
             if (defaultRoomElement) {
-                updateRoomElement(defaultRoomElement, '溫溫鼠窩', defaultOnline);
+                const defaultRoomData = latestRoomsData['溫溫鼠窩'] || {};
+                const defaultOnline = defaultRoomData.online ?
+Object.keys(defaultRoomData.online).length : 0;
+                updateRoomElement(defaultRoomElement, '溫溫鼠窩', defaultOnline, false);
             }
 
-            const emptySlots = document.querySelectorAll('#roomsList [data-room^="empty"]');
-            emptySlots.forEach((slot, index) => {
-                if (customRooms[index]) {
-                    const roomName = customRooms[index];
-                    const roomData = roomsData[roomName];
-                    const onlineCount = roomData.online ? Object.keys(roomData.online).length : 0;
+            const slotElements = Array.from(document.querySelectorAll('#roomsList [data-slot]'));
+            slotElements.forEach((slot, index) => {
+                const slotNumber = slot.getAttribute('data-slot') || String(index + 1);
+                const roomName = customRooms[index];
 
+                if (roomName) {
+                    const roomData = latestRoomsData[roomName] || {};
+                    const onlineCount = roomData.online ? Object.keys(roomData.online).length : 0;
+                    slot.classList.remove('placeholder');
                     slot.setAttribute('data-room', roomName);
-                    slot.onclick = () => window.enterRoom(roomName);
-                    updateRoomElement(slot, roomName, onlineCount);
+                    updateRoomElement(slot, roomName, onlineCount, false);
                 } else {
-                    slot.setAttribute('data-room', 'empty' + (index + 1));
-                    slot.onclick = null;
-                    updateRoomElement(slot, '鼠窩沒鼠', 0);
+                    slot.classList.add('placeholder');
+                    slot.setAttribute('data-room', `empty${slotNumber}`);
+                    const input = slot.querySelector('input[data-slot]');
+                    if (input) {
+                        input.value = '';
+                    }
+                    updateRoomElement(slot, '鼠窩沒鼠', 0, true, slotNumber);
                 }
             });
 
-            const onlineInfoDiv = document.getElementById('onlineInfoDiv');
-            if (totalOnline > 0) {
-                onlineInfoDiv.style.display = 'flex';
-                document.getElementById('totalOnline').textContent = totalOnline;
-            } else {
-                onlineInfoDiv.style.display = 'none';
-            }
+            autoClearEmptyRooms(latestRoomsData);
         }
 
-        function updateRoomElement(element, name, count) {
-            const dot = element.querySelector('.room-dot');
+        function autoClearEmptyRooms(roomsData) {
+            if (!window.firebaseDB) return;
+
+            Object.entries(roomsData).forEach(([roomName, roomData]) => {
+                if (!roomData) return;
+
+                const onlineCount = roomData.online ? Object.keys(roomData.online).length : 0;
+
+                if (onlineCount === 0 && roomData.messages) {
+                    if (pendingRoomClears.has(roomName)) {
+                        return;
+                    }
+
+                    const timeoutId = setTimeout(async () => {
+                        pendingRoomClears.delete(roomName);
+
+                        try {
+                            const roomRef = window.firebaseRef(window.firebaseDB,
+`rooms/${roomName}`);
+                            const snapshot = await new Promise(resolve => {
+                                window.firebaseOnValue(roomRef, resolve, { onlyOnce: true });
+                            });
+
+                            const latestData = snapshot.val();
+                            const latestOnline = latestData && latestData.online ?
+Object.keys(latestData.online).length : 0;
+
+                            if (latestOnline === 0 && latestData && latestData.messages) {
+                                const messagesRef = window.firebaseRef(window.firebaseDB,
+`rooms/${roomName}/messages`);
+                                window.firebaseRemove(messagesRef);
+                            }
+                        } catch (error) {
+                            console.error(`Failed to auto-clear room ${roomName}`, error);
+                        }
+                    }, 5000);
+
+                    pendingRoomClears.set(roomName, timeoutId);
+                } else if (pendingRoomClears.has(roomName)) {
+                    clearTimeout(pendingRoomClears.get(roomName));
+                    pendingRoomClears.delete(roomName);
+                }
+            });
+        }
+
+        function updateRoomElement(element, name, count, isPlaceholder = false, slotNumber
+= null) {
+            const lamp = element.querySelector('.room-lamp');
+            const miceText = element.querySelector('.room-mice-text');
+            const iconsContainer = element.querySelector('.mouse-icons');
             const nameSpan = element.querySelector('.room-name');
-            const countSpan = element.querySelector('.room-count');
+            const createWrapper = element.querySelector('.room-create');
+            const actionButton = element.querySelector('.room-action');
 
-            if (count > 0) {
-                dot.classList.add('online');
-                element.classList.add('has-users');
-                nameSpan.textContent = name;
-                countSpan.textContent = `在線：${count}`;
+            const displayName = isPlaceholder ? '鼠窩沒鼠' : name;
+            if (nameSpan) {
+                nameSpan.textContent = displayName;
+            }
+
+            if (lamp) {
+                lamp.classList.toggle('on', count > 0);
+            }
+
+            const actualCount = Math.max(0, count || 0);
+            const clampedCount = Math.min(actualCount, 5);
+
+            if (miceText) {
+                miceText.textContent = `${actualCount} 隻老鼠`;
+            }
+
+            if (iconsContainer) {
+                iconsContainer.innerHTML = '';
+                for (let i = 0; i < clampedCount; i += 1) {
+                    iconsContainer.appendChild(createMouseIcon());
+                }
+            }
+
+            element.classList.toggle('has-users', count > 0 && !isPlaceholder);
+
+            if (isPlaceholder) {
+                if (createWrapper) {
+                    createWrapper.style.display = 'flex';
+                }
+                if (actionButton) {
+                    actionButton.style.display = 'none';
+                    actionButton.disabled = true;
+                    actionButton.dataset.room = '';
+                    actionButton.dataset.full = '0';
+                }
             } else {
-                dot.classList.remove('online');
-                element.classList.remove('has-users');
-                nameSpan.textContent = name === '溫溫鼠窩' ? name : '鼠窩沒鼠';
-                countSpan.textContent = '';
+                if (createWrapper) {
+                    createWrapper.style.display = 'none';
+                }
+                if (actionButton) {
+                    actionButton.style.display = 'inline-flex';
+                    actionButton.textContent = count >= 5 ? '已滿' : '加入';
+                    actionButton.disabled = count >= 5;
+                    actionButton.dataset.room = name;
+                    actionButton.dataset.full = count >= 5 ? '1' : '0';
+                    actionButton.onclick = () => window.enterRoom(name);
+                }
+
+            }
+
+            if (isPlaceholder && createWrapper) {
+                const input = createWrapper.querySelector('input[data-slot]');
+                if (input && slotNumber) {
+                    input.setAttribute('data-slot', slotNumber);
+                }
+                const button = createWrapper.querySelector('button[data-slot]');
+                if (button && slotNumber) {
+                    button.setAttribute('data-slot', slotNumber);
+                }
             }
         }
 
-        window.createOrJoinRoom = function() {
-            if (!currentUser) {
-                alert('請先輸入暱稱或選擇管理員');
+        window.createRoomFromSlot = function(slotNumber) {
+            const input = document.querySelector(`.room-create
+input[data-slot="${slotNumber}"]`);
+            if (!input) {
                 return;
             }
 
-            const input = document.getElementById('roomNameInput');
             const roomName = input.value.trim();
-
             if (!roomName) {
                 alert('請輸入鼠窩名稱');
                 return;
@@ -1154,14 +1685,84 @@
             window.enterRoom(roomName);
         };
 
-        window.enterRoom = async function(roomName) {
-            if (!window.firebaseDB) {
-                alert('Firebase 未配置，無法使用即時功能');
+        async function recordVisit() {
+            if (!window.firebaseDB || visitRecorded || !currentUser) {
+                if (currentUser) {
+                    await updateLobbyPresence();
+                }
                 return;
             }
 
-            if (!currentUser) {
-                alert('請先輸入暱稱或選擇管理員');
+            try {
+                await updateLobbyPresence();
+
+                const visitsRef = window.firebaseRef(window.firebaseDB, 'stats/visits');
+
+                await window.firebasePush(visitsRef, {
+                    nickname: currentUser.nickname,
+                    isAdmin: currentUser.isAdmin,
+                    timestamp: Date.now()
+                });
+
+                if (currentUser.isAdmin) {
+                    const adminRef = window.firebaseRef(window.firebaseDB,
+`stats/adminLogins/${currentUser.nickname}`);
+                    await window.firebasePush(adminRef, {
+                        timestamp: Date.now()
+                    });
+                }
+
+                visitRecorded = true;
+            } catch (error) {
+                console.warn('紀錄瀏覽人次失敗', error);
+            }
+        }
+
+        function listenToLobbyPresence() {
+            if (!window.firebaseDB) return;
+
+            const lobbyRef = window.firebaseRef(window.firebaseDB, 'pageOnline');
+
+            if (lobbyListener) {
+                lobbyListener();
+            }
+
+            lobbyListener = window.firebaseOnValue(lobbyRef, (snapshot) => {
+                const lobbyData = snapshot.val() || {};
+                const count = Object.keys(lobbyData).length;
+                updateLobbyIndicator(count);
+            });
+        }
+
+        function updateLobbyIndicator(count) {
+            const lamp = document.getElementById('lobbyLamp');
+            const text = document.getElementById('lobbyStatusText');
+            if (!lamp || !text) return;
+
+            if (count > 0) {
+                lamp.classList.add('on');
+                text.textContent = `大廳有${count}隻老鼠`;
+            } else {
+                lamp.classList.remove('on');
+                text.textContent = '大廳沒有老鼠';
+            }
+
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '未知時間';
+```
+```javascript
+            try {
+                return new Date(timestamp).toLocaleString('zh-TW', { hour12: false });
+            } catch (error) {
+                return '未知時間';
+            }
+        }
+
+        window.enterRoom = async function(roomName) {
+            if (!window.firebaseDB) {
+                alert('Firebase 未配置，無法使用即時功能');
                 return;
             }
 
@@ -1170,48 +1771,97 @@
                 return;
             }
 
-            const roomRef = window.firebaseRef(window.firebaseDB, `rooms/${roomName}/online`);
-            const snapshot = await new Promise(resolve => {
-                window.firebaseOnValue(roomRef, resolve, { onlyOnce: true });
-            });
+            if (!currentUser) {
+                if (!ensureUserProfile()) {
+                    return;
+                }
+            }
 
-            const onlineUsers = snapshot.val() || {};
-            if (Object.keys(onlineUsers).length >= 5) {
+            if (!roomsInitialized) {
+                await showRoomsSection();
+            }
+
+            const onlineRef = window.firebaseRef(window.firebaseDB,
+`rooms/${roomName}/online`);
+            const uid = currentUser.id;
+            const presence = {
+                nickname: currentUser.nickname,
+                isAdmin: currentUser.isAdmin,
+                joinTime: Date.now()
+            };
+
+            let transactionResult;
+            try {
+                transactionResult = await window.firebaseRunTransaction(onlineRef, (current) => {
+                    current = current || {};
+                    const alreadyIn = !!current[uid];
+
+                    const count = Object.keys(current).length;
+
+                    if (!alreadyIn && count >= 5) {
+                        return;
+                    }
+
+                    current[uid] = presence;
+                    return current;
+                }, { applyLocally: false });
+            } catch (error) {
+                console.error('Failed to join room via transaction', error);
+                alert('暫時無法加入此房間，請稍後再試');
+                return;
+            }
+
+            if (!transactionResult?.committed || !transactionResult.snapshot?.val()?.[uid]) {
                 alert('此房間已滿（最多 5 人）');
                 return;
             }
 
             currentRoom = roomName;
 
-            userPresenceRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
-            await window.firebaseSet(userPresenceRef, {
-                nickname: currentUser.nickname,
-                isAdmin: currentUser.isAdmin,
-                joinTime: Date.now()
-            });
-
+            userPresenceRef = window.firebaseRef(window.firebaseDB,
+`rooms/${currentRoom}/online/${uid}`);
             window.firebaseOnDisconnect(userPresenceRef).remove();
 
-            document.getElementById('roomsSection').style.display = 'none';
-            document.getElementById('chatPage').style.display = 'block';
+            document.getElementById('roomsSection').classList.add('hidden');
+            document.getElementById('chatPage').style.display = 'flex';
             document.getElementById('currentRoomName').textContent = roomName;
+
+            const entryNotice = document.getElementById('entryNotice');
+            if (entryNotice) {
+                if (currentUser.isAdmin) {
+                    entryNotice.textContent = `登入身分：管理員（${currentUser.nickname}）`;
+                } else {
+                    entryNotice.textContent = `歡迎 ${currentUser.nickname}`;
+                }
+            }
+
+            const adminActions = document.getElementById('adminActions');
+            const clearChatBtn = document.getElementById('clearChatBtn');
+            const statsBtn = document.getElementById('statsBtn');
+
+            if (adminActions && clearChatBtn && statsBtn) {
+                if (currentUser.isAdmin) {
+                    adminActions.style.display = 'flex';
+                    clearChatBtn.style.display = 'inline-flex';
+                    statsBtn.style.display = currentUser.nickname === '吸鼠女' ? 'inline-flex' : 'none';
+
+                } else {
+                    adminActions.style.display = 'none';
+                    clearChatBtn.style.display = 'none';
+                    statsBtn.style.display = 'none';
+                }
+            }
 
             listenToMessages();
             listenToOnlineUsers();
             startMessageCleanup();
-
-            if (currentUser.isAdmin) {
-                document.getElementById('clearChatBtn').style.display = 'block';
-                if (currentUser.nickname === '吸鼠女') {
-                    document.getElementById('statsBtn').style.display = 'block';
-                }
-            }
         };
 
         function listenToMessages() {
             if (!window.firebaseDB) return;
 
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+            const messagesRef = window.firebaseRef(window.firebaseDB,
+`rooms/${currentRoom}/messages`);
             const messagesQuery = window.firebaseQuery(
                 messagesRef,
                 window.firebaseOrderByChild('timestamp'),
@@ -1223,15 +1873,17 @@
             }
 
             messagesListener = window.firebaseOnValue(messagesQuery, (snapshot) => {
-                displayMessages(snapshot.val());
-                updateTimer();
+                const messagesData = snapshot.val();
+                displayMessages(messagesData);
+                handleMessageTimer(messagesData);
             });
         }
 
         function listenToOnlineUsers() {
             if (!window.firebaseDB) return;
 
-            const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online`);
+            const onlineRef = window.firebaseRef(window.firebaseDB,
+`rooms/${currentRoom}/online`);
 
             if (onlineListener) {
                 onlineListener();
@@ -1239,7 +1891,16 @@
 
             onlineListener = window.firebaseOnValue(onlineRef, (snapshot) => {
                 const onlineUsers = snapshot.val() || {};
-                document.getElementById('roomOnlineCount').textContent = Object.keys(onlineUsers).length;
+                const count = Object.keys(onlineUsers).length;
+                document.getElementById('roomOnlineCount').textContent = count;
+
+                if (count === 0 && currentRoom) {
+                    const messagesRef = window.firebaseRef(window.firebaseDB,
+`rooms/${currentRoom}/messages`);
+                    window.firebaseRemove(messagesRef);
+                    displayMessages(null);
+                    handleMessageTimer(null);
+                }
             });
         }
 
@@ -1251,72 +1912,37 @@
 
             if (messagesListener) messagesListener();
             if (onlineListener) onlineListener();
-            if (timerInterval) clearInterval(timerInterval);
-
-            document.getElementById('chatPage').style.display = 'none';
-            document.getElementById('roomsSection').style.display = 'block';
-            document.getElementById('messageTimer').style.display = 'none';
-            currentRoom = null;
-            selectedImages = [];
-            document.getElementById('imagePreviewContainer').innerHTML = '';
-            document.getElementById('messageInput').value = '';
-        };
-
-        window.handleImageSelect = function(event) {
-            const files = event.target.files;
-
-            if (selectedImages.length + files.length > 3) {
-                alert('每次最多只能傳送 3 張圖片');
-                event.target.value = '';
-                return;
+            stopCountdown();
+            messageExpiryTimestamp = null;
+            if (cleanupInterval) {
+                clearInterval(cleanupInterval);
+                cleanupInterval = null;
             }
 
-            Array.from(files).forEach(file => {
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('圖片大小不能超過 5MB');
-                    return;
-                }
+            document.getElementById('chatPage').style.display = 'none';
+            const roomsSection = document.getElementById('roomsSection');
+            roomsSection.classList.remove('hidden');
+            document.getElementById('messageTimer').style.display = 'none';
+            currentRoom = null;
+            document.getElementById('messageInput').value = '';
+            const adminActions = document.getElementById('adminActions');
+            if (adminActions) {
+                adminActions.style.display = 'none';
+            }
+            document.getElementById('clearChatBtn').style.display = 'none';
+            document.getElementById('statsBtn').style.display = 'none';
+            const entryNotice = document.getElementById('entryNotice');
+            if (entryNotice) {
+                entryNotice.textContent = '';
+            }
 
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    selectedImages.push(e.target.result);
-                    displayImagePreviews();
-                };
-                reader.readAsDataURL(file);
-            });
-
-            event.target.value = '';
+            setRoomControlsEnabled(true);
         };
-
-        function displayImagePreviews() {
-            const container = document.getElementById('imagePreviewContainer');
-            container.innerHTML = '';
-
-            selectedImages.forEach((img, index) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'image-preview-item';
-
-                const imgElement = document.createElement('img');
-                imgElement.src = img;
-                imgElement.className = 'image-preview';
-
-                const removeBtn = document.createElement('button');
-                removeBtn.textContent = '×';
-                removeBtn.className = 'btn-remove-image';
-                removeBtn.onclick = () => {
-                    selectedImages.splice(index, 1);
-                    displayImagePreviews();
-                };
-
-                wrapper.appendChild(imgElement);
-                wrapper.appendChild(removeBtn);
-                container.appendChild(wrapper);
-            });
-        }
 
         window.handleKeyPress = function(event) {
             if (event.key === 'Enter') {
-                window.sendMessage();
+
+                window.sendMessage();
             }
         };
 
@@ -1326,26 +1952,31 @@
                 return;
             }
 
+            if (!currentRoom) {
+                return;
+            }
+
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
 
-            if (!text && selectedImages.length === 0) return;
+            if (!text) return;
 
             const messageData = {
                 userId: currentUser.id,
                 nickname: currentUser.nickname,
                 isAdmin: currentUser.isAdmin,
                 text: text,
-                images: selectedImages.length > 0 ? selectedImages : null,
                 timestamp: Date.now()
             };
 
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+            const messagesRef = window.firebaseRef(window.firebaseDB,
+`rooms/${currentRoom}/messages`);
             await window.firebasePush(messagesRef, messageData);
 
             messageInput.value = '';
-            selectedImages = [];
-            displayImagePreviews();
+
+            messageExpiryTimestamp = messageData.timestamp + (60 * 60 * 1000);
+            startCountdown();
         };
 
         function displayMessages(messagesData) {
@@ -1359,7 +1990,7 @@
                 ...data
             })).sort((a, b) => a.timestamp - b.timestamp);
 
-            messages.forEach(msg => {
+            messages.forEach(msg => {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message-item';
                 if (msg.userId === currentUser.id) {
@@ -1368,31 +1999,23 @@
 
                 const nicknameSpan = document.createElement('div');
                 nicknameSpan.className = 'message-nickname';
-                nicknameSpan.textContent = msg.nickname + (msg.isAdmin ? ' 👑' : '');
+                nicknameSpan.textContent = msg.nickname;
+                if (msg.isAdmin) {
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'admin-icon';
+                    iconSpan.appendChild(createCrownIcon());
+                    nicknameSpan.appendChild(iconSpan);
+                }
                 messageDiv.appendChild(nicknameSpan);
 
                 const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = msg.userId === currentUser.id ? 'message-bubble mine' : 'message-bubble others';
+                bubbleDiv.className = msg.userId === currentUser.id ? 'message-bubble mine' :
+'message-bubble others';
 
                 if (msg.text) {
                     const textDiv = document.createElement('div');
                     textDiv.textContent = msg.text;
                     bubbleDiv.appendChild(textDiv);
-                }
-
-                if (msg.images && msg.images.length > 0) {
-                    const imagesDiv = document.createElement('div');
-                    imagesDiv.className = 'message-images';
-
-                    msg.images.forEach(imgSrc => {
-                        const img = document.createElement('img');
-                        img.src = imgSrc;
-                        img.className = 'message-image';
-                        img.onclick = () => window.openImageModal(imgSrc);
-                        imagesDiv.appendChild(img);
-                    });
-
-                    bubbleDiv.appendChild(imagesDiv);
                 }
 
                 messageDiv.appendChild(bubbleDiv);
@@ -1403,57 +2026,98 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        function updateTimer() {
-            if (!window.firebaseDB) return;
-
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
-
-            window.firebaseOnValue(messagesRef, (snapshot) => {
-                const messagesData = snapshot.val();
-                if (!messagesData) {
-                    document.getElementById('messageTimer').style.display = 'none';
-                    return;
-                }
-
-                const messages = Object.values(messagesData);
-                if (messages.length === 0) {
-                    document.getElementById('messageTimer').style.display = 'none';
-                    return;
-                }
-
-                const oldestTimestamp = Math.min(...messages.map(m => m.timestamp));
-                const elapsed = Date.now() - oldestTimestamp;
-                const remaining = (60 * 60 * 1000) - elapsed;
-
-                if (remaining <= 0) {
-                    document.getElementById('messageTimer').style.display = 'none';
-                    return;
-                }
-
-                const minutes = Math.floor(remaining / 60000);
-                const seconds = Math.floor((remaining % 60000) / 1000);
-
-                document.getElementById('messageTimer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                document.getElementById('messageTimer').style.display = 'inline-block';
-            }, { onlyOnce: true });
-        }
-
         function startMessageCleanup() {
-            if (timerInterval) {
-                clearInterval(timerInterval);
+            if (cleanupInterval) {
+                clearInterval(cleanupInterval);
             }
 
-            updateTimer();
-            timerInterval = setInterval(() => {
-                updateTimer();
+            cleanOldMessages();
+            cleanupInterval = setInterval(() => {
                 cleanOldMessages();
             }, 60000);
+        }
+
+        function handleMessageTimer(messagesData) {
+
+            const timerBadge = document.getElementById('messageTimer');
+
+            if (!messagesData) {
+                messageExpiryTimestamp = null;
+                timerBadge.style.display = 'none';
+                stopCountdown();
+                return;
+            }
+
+            const timestamps = Object.values(messagesData)
+                .map(message => message.timestamp)
+                .filter(ts => typeof ts === 'number');
+
+            if (timestamps.length === 0) {
+                messageExpiryTimestamp = null;
+                timerBadge.style.display = 'none';
+                stopCountdown();
+                return;
+            }
+
+            const oldestTimestamp = Math.min(...timestamps);
+            const nextExpiry = oldestTimestamp + (60 * 60 * 1000);
+
+            if (messageExpiryTimestamp !== nextExpiry) {
+                messageExpiryTimestamp = nextExpiry;
+                startCountdown();
+            } else if (!countdownInterval) {
+                startCountdown();
+            }
+        }
+
+        function startCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            renderCountdown();
+            countdownInterval = setInterval(renderCountdown, 1000);
+        }
+
+        function stopCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        function renderCountdown() {
+
+            const timerBadge = document.getElementById('messageTimer');
+
+            if (!messageExpiryTimestamp) {
+                timerBadge.style.display = 'none';
+                stopCountdown();
+                return;
+            }
+
+            const remainingSeconds = Math.max(0, Math.floor((messageExpiryTimestamp -
+Date.now()) / 1000));
+
+            if (remainingSeconds <= 0) {
+                timerBadge.style.display = 'none';
+                stopCountdown();
+                messageExpiryTimestamp = null;
+                return;
+            }
+
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+
+            timerBadge.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            timerBadge.style.display = 'inline-block';
         }
 
         async function cleanOldMessages() {
             if (!window.firebaseDB || !currentRoom) return;
 
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+            const messagesRef = window.firebaseRef(window.firebaseDB,
+`rooms/${currentRoom}/messages`);
             const snapshot = await new Promise(resolve => {
                 window.firebaseOnValue(messagesRef, resolve, { onlyOnce: true });
             });
@@ -1466,22 +2130,14 @@
 
             Object.entries(messagesData).forEach(([messageId, messageData]) => {
                 if ((now - messageData.timestamp) > oneHour) {
-                    const messageRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages/${messageId}`);
+                    const messageRef = window.firebaseRef(window.firebaseDB,
+`rooms/${currentRoom}/messages/${messageId}`);
                     window.firebaseRemove(messageRef);
                 }
             });
         }
 
-        window.openImageModal = function(src) {
-            document.getElementById('modalImage').src = src;
-            document.getElementById('imageModal').classList.add('show');
-        };
-
-        window.closeModal = function() {
-            document.getElementById('imageModal').classList.remove('show');
-        };
-
-        window.showMenu = function() {
+        window.showMenu = function() {
             document.getElementById('menuModal').classList.add('show');
         };
 
@@ -1501,13 +2157,16 @@
 
             if (!window.firebaseDB) return;
 
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
+            const messagesRef = window.firebaseRef(window.firebaseDB,
+`rooms/${currentRoom}/messages`);
             await window.firebaseRemove(messagesRef);
 
+            displayMessages(null);
+            handleMessageTimer(null);
+
             document.getElementById('messageTimer').style.display = 'none';
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
+            messageExpiryTimestamp = null;
+            stopCountdown();
 
             window.closeMenu();
             alert('對話已清空');
@@ -1521,33 +2180,81 @@
 
             if (!window.firebaseDB) return;
 
-            const roomsRef = window.firebaseRef(window.firebaseDB, 'rooms');
-            const snapshot = await new Promise(resolve => {
-                window.firebaseOnValue(roomsRef, resolve, { onlyOnce: true });
-            });
+            try {
+                const roomsRef = window.firebaseRef(window.firebaseDB, 'rooms');
+                const statsRef = window.firebaseRef(window.firebaseDB, 'stats');
 
-            const roomsData = snapshot.val() || {};
-            let statsText = '=== 使用統計 ===\n\n';
+                const [roomsSnapshot, statsSnapshot] = await Promise.all([
+                    new Promise(resolve => {
+                        window.firebaseOnValue(roomsRef, resolve, { onlyOnce: true });
+                    }),
+                    new Promise(resolve => {
+                        window.firebaseOnValue(statsRef, resolve, { onlyOnce: true });
+                    })
+                ]);
 
-            Object.keys(roomsData).forEach(roomName => {
-                const room = roomsData[roomName];
-                const onlineCount = room.online ? Object.keys(room.online).length : 0;
-                const messageCount = room.messages ? Object.keys(room.messages).length : 0;
+                const roomsData = roomsSnapshot.val() || {};
+                const statsData = statsSnapshot.val() || {};
+                const visitsData = statsData.visits || {};
+                const adminLogins = statsData.adminLogins || {};
 
-                statsText += `房間：${roomName}\n`;
-                statsText += `在線人數：${onlineCount}/5\n`;
-                statsText += `訊息數量：${messageCount}\n`;
+                const visitTimestamps = Object.values(visitsData)
+                    .map(entry => entry && entry.timestamp)
+                    .filter(ts => typeof ts === 'number')
+                    .sort((a, b) => b - a);
 
-                if (room.online) {
-                    statsText += '在線用戶：';
-                    const users = Object.values(room.online).map(u => u.nickname).join(', ');
-                    statsText += users + '\n';
+                let statsText = '=== 使用統計 ===\n\n';
+                statsText += `網站瀏覽人次：${visitTimestamps.length}\n`;
+                if (visitTimestamps.length > 0) {
+                    statsText += '所有登入紀錄：\n';
+                    visitTimestamps.forEach(ts => {
+                        statsText += `- ${formatTimestamp(ts)}\n`;
+                    });
+                    statsText += '\n';
                 }
-                statsText += '\n';
-            });
 
-            alert(statsText);
-            window.closeMenu();
+                statsText += '=== 管理員登入 ===\n';
+                Object.keys(adminPasswords).forEach(adminName => {
+                    const entries = adminLogins[adminName] ?
+Object.values(adminLogins[adminName]) : [];
+                    const adminTimestamps = entries
+                        .map(entry => entry && entry.timestamp)
+                        .filter(ts => typeof ts === 'number')
+                        .sort((a, b) => b - a);
+
+                    statsText += `${adminName}：${adminTimestamps.length} 次\n`;
+                    if (adminTimestamps.length > 0) {
+                        statsText += '  登入時間：\n';
+                        adminTimestamps.forEach(ts => {
+                            statsText += `  - ${formatTimestamp(ts)}\n`;
+                        });
+                    }
+                    statsText += '\n';
+                });
+
+                statsText += '=== 房間概況 ===\n';
+                Object.keys(roomsData).forEach(roomName => {
+                    const room = roomsData[roomName] || {};
+                    const onlineCount = room.online ? Object.keys(room.online).length : 0;
+                    const messageCount = room.messages ? Object.keys(room.messages).length :
+0;
+
+                    statsText += `房間：${roomName}\n`;
+                    statsText += `在線人數：${onlineCount}/5\n`;
+                    statsText += `訊息數量：${messageCount}\n`;
+
+                    if (room.online) {
+                        const users = Object.values(room.online).map(u => u.nickname).join(', ');
+                        statsText += `在線用戶：${users || '無'}\n`;
+                    }
+                    statsText += '\n';
+                });
+
+                alert(statsText.trim());
+            } catch (error) {
+                console.error('載入統計資料失敗', error);
+                alert('無法載入統計資料，請稍後再試');
+            }
         };
 
         window.logout = async function() {
@@ -1555,31 +2262,40 @@
                 return;
             }
 
+            visitRecorded = false;
+            pendingRoomClears.forEach(timeoutId => clearTimeout(timeoutId));
+            pendingRoomClears.clear();
+
             if (userPresenceRef) {
                 await window.firebaseRemove(userPresenceRef);
                 userPresenceRef = null;
             }
 
-            if (pagePresenceRef) {
-                await window.firebaseRemove(pagePresenceRef);
-                pagePresenceRef = null;
-            }
-
             if (messagesListener) messagesListener();
             if (onlineListener) onlineListener();
             if (allRoomsListener) allRoomsListener();
-            if (timerInterval) clearInterval(timerInterval);
+            stopCountdown();
+            if (cleanupInterval) {
+                clearInterval(cleanupInterval);
+                cleanupInterval = null;
+            }
+            messageExpiryTimestamp = null;
 
-            currentUser = null;
+            currentUser = null;
             currentRoom = null;
             selectedAdmin = null;
-            selectedImages = [];
             roomsInitialized = false;
 
+            await updateLobbyPresence();
+
             document.getElementById('chatPage').style.display = 'none';
-            document.getElementById('roomsSection').style.display = 'none';
+            const roomsSection = document.getElementById('roomsSection');
+            roomsSection.classList.add('hidden');
             document.getElementById('mainContainer').classList.remove('rooms-visible');
             document.body.classList.remove('logged-in');
+
+            setRoomControlsEnabled(false);
+            listenToAllRooms();
 
             const nicknameInput = document.getElementById('nicknameInput');
             nicknameInput.value = '';
@@ -1591,26 +2307,39 @@
             passwordInput.style.display = 'none';
 
             document.getElementById('messageInput').value = '';
-            document.getElementById('imagePreviewContainer').innerHTML = '';
             document.getElementById('clearChatBtn').style.display = 'none';
             document.getElementById('statsBtn').style.display = 'none';
-            document.getElementById('onlineInfoDiv').style.display = 'none';
+            const adminActions = document.getElementById('adminActions');
+            if (adminActions) {
+                adminActions.style.display = 'none';
+            }
+            const entryNotice = document.getElementById('entryNotice');
+            if (entryNotice) {
+                entryNotice.textContent = '';
+            }
             document.getElementById('welcomeName').textContent = '';
+            document.getElementById('messageTimer').style.display = 'none';
 
             document.querySelectorAll('.btn-admin').forEach(btn => {
                 btn.classList.remove('selected');
             });
 
             window.closeMenu();
+            updateLoginStatus();
         };
 
-        window.addEventListener('beforeunload', async () => {
+        window.addEventListener('beforeunload', async () => {
+            pendingRoomClears.forEach(timeoutId => clearTimeout(timeoutId));
+            pendingRoomClears.clear();
             try {
                 if (userPresenceRef) {
                     await window.firebaseRemove(userPresenceRef);
                 }
                 if (pagePresenceRef) {
                     await window.firebaseRemove(pagePresenceRef);
+                }
+                if (lobbyListener) {
+                    lobbyListener();
                 }
             } catch (error) {
                 console.warn('清除在線狀態時發生錯誤', error);
@@ -1619,3 +2348,7 @@
     </script>
 </body>
 </html>
+```
+
+</artifact>
+
