@@ -2,13 +2,22 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>花枝鼠社群專用 - 臨時私密對話小工具</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>花枝鼠社群專用 - 臨時私密對話 v3.0.0</title>
+    
+    <!-- 圓圓胖胖的字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, push, onValue, remove, set, onDisconnect, query, orderByChild, limitToLast, runTransaction } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getDatabase, ref, push, onValue, remove, set, onDisconnect, query, orderByChild, limitToLast, runTransaction, serverTimestamp, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
+        // 你的 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyA3Ml5IrxQAX1s9W03y_yRjU1xELR_kNF8",
             authDomain: "rat50khz.firebaseapp.com",
@@ -20,9 +29,11 @@
             measurementId: "G-CRM8NDPK0G"
         };
 
+        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
+        // 將 Firebase 功能掛載到 window，方便全域使用
         window.firebaseDB = database;
         window.firebaseRef = ref;
         window.firebasePush = push;
@@ -34,1614 +45,539 @@
         window.firebaseOrderByChild = orderByChild;
         window.firebaseLimitToLast = limitToLast;
         window.firebaseRunTransaction = runTransaction;
+        window.firebaseServerTimestamp = serverTimestamp;
+        window.firebaseGet = get;
     </script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+        /* 莫蘭迪深色系主題 */
+        :root {
+            /* 預設主題 (會被 JS 覆蓋) */
+            --bg-color: #3a3a3a;
+            --card-bg: #4a4a4a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-color: #8a9a8a;
+            --accent-hover: #9aac9a;
+            --btn-text: #ffffff;
+            --input-bg: #2f2f2f;
+            --input-border: #5a5a5a;
+            --dot-off: #5a5a5a;
+            --dot-on: #4CAF50;
+            --text-green-lit: #66ff66;
         }
+        
+        /* 隨機主題 */
+        .theme-1 { --bg-color: #2c3e50; --card-bg: #34495e; --text-primary: #ecf0f1; --text-secondary: #bdc3c7; --accent-color: #8e44ad; --accent-hover: #9b59b6; --input-bg: #2c3e50; --input-border: #4a637a; }
+        .theme-2 { --bg-color: #4B3A41; --card-bg: #5A4A51; --text-primary: #F7F1EA; --text-secondary: #D4C4B4; --accent-color: #A57B68; --accent-hover: #B88A79; --input-bg: #403036; --input-border: #6a5a61; }
+        .theme-3 { --bg-color: #3F4856; --card-bg: #4E5A65; --text-primary: #F4EFE9; --text-secondary: #C0C5C9; --accent-color: #5A8B9D; --accent-hover: #6AA0B3; --input-bg: #353D4A; --input-border: #5e6b7a; }
+        .theme-4 { --bg-color: #4A4F46; --card-bg: #595F55; --text-primary: #F6F1EB; --text-secondary: #C4C8C2; --accent-color: #7A8B7D; --accent-hover: #8A9B8D; --input-bg: #40453C; --input-border: #696F65; }
+        .theme-5 { --bg-color: #3D4D4F; --card-bg: #4C5C5E; --text-primary: #F3EDE6; --text-secondary: #BFC6C7; --accent-color: #6B7A8B; --accent-hover: #7B8A9B; --input-bg: #334345; --input-border: #5B6B6D; }
 
+        /* 基本設定 */
         body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 28px 18px 24px;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            /* 圓圓胖胖的字體 */
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+            font-weight: 500;
             transition: background-color 0.5s;
         }
 
-        body.logged-in {
-            align-items: flex-start;
+        /* 標題 */
+        h1, h2, h3 {
+            font-weight: 700;
+            letter-spacing: 1px;
         }
 
+        /* 容器 */
         .container {
             width: 100%;
             max-width: 640px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .headline {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .headline-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            flex-wrap: wrap;
-        }
-
-        .container.rooms-visible {
-            gap: 28px;
-        }
-
-        h1 {
-            font-size: 42px;
-            font-weight: 700;
-            text-align: center;
-            letter-spacing: 3px;
-            color: #5A4A3D;
-        }
-
-        h2 {
-            font-size: 26px;
-            font-weight: 400;
-            text-align: center;
-            letter-spacing: 2px;
-            color: #7A6A5D;
-        }
-
-        .lobby-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-        }
-
-        .lobby-lamp {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .lobby-lamp svg {
-            width: 16px;
-            height: 16px;
-            fill: rgba(255, 255, 255, 0.35);
-        }
-
-        .lobby-lamp.on svg {
-            fill: #4CAF50;
-            filter: drop-shadow(0 0 6px rgba(76, 175, 80, 0.45));
-        }
-
-        .lobby-status-text {
-            font-size: 14px;
-            font-weight: 600;
-            color: #F7F1EA;
-        }
-
-        .description {
-            text-align: left;
-            line-height: 1.9;
-            font-size: 15px;
-            padding: 0 10px;
-            color: #5A4A3D;
-        }
-
-        .warning-box {
-            border-radius: 24px;
-            padding: 14px 20px;
             margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            max-width: 92%;
         }
-
-        .warning-icon {
-            margin-right: 14px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        
+        /* 卡片 */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
-
-        .warning-icon svg {
-            width: 28px;
-            height: 28px;
-        }
-
-        .warning-text {
-            font-size: 15px;
-            font-weight: 600;
-            white-space: nowrap;
-            padding: 6px 12px;
-            border-radius: 8px;
-        }
-
-        .login-card {
-            background: rgba(255, 255, 255, 0.86);
-            border-radius: 28px;
-            padding: 26px 24px 26px;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
-            display: flex;
-            flex-direction: column;
-            gap: 22px;
-        }
-
-        .login-section,
-        .admin-section {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .login-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
-        }
-
-        .section-title {
-            font-size: 22px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            color: #23150F;
-            white-space: nowrap;
-        }
-
-        .nickname-input,
-        .password-input {
-            background-color: #FFF;
-            border: 2px solid #D4C4B4;
+        
+        /* 輸入框 */
+        .input-field {
+            background-color: var(--input-bg);
+            border: 2px solid var(--input-border);
+            color: var(--text-primary);
             border-radius: 12px;
-            padding: 13px 20px;
-            font-size: 15px;
+            padding: 12px 16px;
+            font-size: 16px;
+            width: 100%;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-field:focus {
             outline: none;
-            flex: 1;
-            color: #5A4A3D;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px var(--accent-hover);
+        }
+        .input-field::placeholder {
+            color: var(--text-secondary);
         }
 
-        .nickname-input::placeholder,
-        .password-input::placeholder {
-            color: #B8A89A;
+        /* 按鈕 */
+        .btn {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
         }
-
-        .nickname-input.readonly {
-            background-color: rgba(244, 236, 229, 0.7);
-            cursor: default;
+        
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: var(--btn-text);
         }
-
-        .admin-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
-            grid-auto-rows: minmax(86px, auto);
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .btn-primary:disabled {
+            background-color: var(--dot-off);
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .btn-admin {
-            background-color: #E8D4C4;
-            color: #5A4A3D;
-            border: none;
-            border-radius: 18px;
-            padding: 14px 16px;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 86px;
-            text-align: center;
-            line-height: 1.3;
+            background-color: var(--input-border);
+            color: var(--text-secondary);
         }
-
         .btn-admin:hover {
-            background-color: #D8C4B4;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background-color: var(--dot-off);
+            color: var(--text-primary);
         }
-
         .btn-admin.selected {
-            background-color: #8B5A3D;
-            color: #FFF;
+            background-color: var(--accent-color);
+            color: var(--btn-text);
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-            font-weight: 600;
         }
-
-        .password-input {
-            max-width: 320px;
-            margin: 0 auto;
-            display: none;
-        }
-
-        .note-text {
-            color: #8B7355;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .login-status {
-            display: none;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: #23150F;
-            margin-top: -4px;
-        }
-
-        .version-text {
-            text-align: center;
-            color: #8B7355;
-            font-size: 13px;
-        }
-        .rooms-section {
-            position: relative;
-            background: rgba(255, 255, 255, 0.78);
-            border-radius: 24px;
-            padding: 26px 22px 30px;
-            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08);
-            margin-top: 4px;
-        }
-
-        .rooms-section.hidden {
-            display: none;
-        }
-
-        .rooms-content {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .room-header {
-            text-align: center;
-        }
-
-        .room-header h1 {
-            color: #23150F;
-        }
-
-        .welcome-text {
-            display: none;
-        }
-
-        .online-info {
-            display: none;
-            align-items: center;
-            color: #5A4A3D;
-            font-size: 15px;
-            margin-bottom: 18px;
-            padding: 0 5px;
-        }
-
-        .online-dot {
-            width: 11px;
-            height: 11px;
-            background-color: #4CAF50;
+        
+        /* 大廳燈號 */
+        .lobby-lamp {
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .rooms-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
-            grid-auto-rows: minmax(150px, 1fr);
-        }
-
-        .room-item {
-            background-color: #E8CFC4;
-            border-radius: 16px;
-            padding: 20px 16px 18px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 12px;
-            cursor: default;
+            background-color: var(--dot-off);
             transition: all 0.3s;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-            position: relative;
         }
-
-        .room-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+        .lobby-lamp.on {
+            background-color: var(--dot-on);
+            box-shadow: 0 0 10px var(--dot-on), 0 0 5px var(--dot-on);
         }
-
-        .room-item:active {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        
+        /* 房間列表 */
+        .room-item {
+            background-color: var(--card-bg);
+            border: 2px solid var(--input-border);
+            padding: 16px;
+            gap: 12px;
         }
-
         .room-item.has-users {
-            background-color: #C4E8D4;
+            border-color: var(--dot-on);
         }
-
-        .room-mice {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            color: #5A4A3D;
-        }
-
-        .mouse-icons {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            color: #5A4A3D;
-            min-height: 18px;
-        }
-
-        .mouse-icons svg {
-            width: 18px;
-            height: 18px;
-            display: block;
-        }
-
-        .room-item.has-users .mouse-icons {
-            color: #4CAF50;
-        }
-
-        .room-mice-text {
-            font-size: 13px;
-        }
-
+        
         .room-lamp {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+             width: 12px;
+             height: 12px;
+             border-radius: 50%;
+             background-color: var(--dot-off);
         }
-
-        .room-lamp svg {
-            width: 18px;
-            height: 18px;
-            fill: #8B7355;
+        .room-lamp.on {
+            background-color: var(--dot-on);
+            box-shadow: 0 0 8px var(--dot-on);
         }
-
-        .room-lamp.on svg {
-            fill: #4CAF50;
-            filter: drop-shadow(0 0 6px rgba(76, 175, 80, 0.45));
+        
+        /* 鼠窩名稱輸入 (縮小字體) */
+        .room-create-input {
+            font-size: 13px; /* 縮小3號 */
+            padding: 10px 12px;
         }
-
-        .room-name {
-            color: #23150F;
-            font-size: 16px;
-            text-align: center;
+        
+        .room-status-text {
+            color: var(--text-green-lit);
             font-weight: 700;
         }
 
-        .room-action {
-            margin-top: auto;
-            background: linear-gradient(135deg, #D8A776 0%, #B87A4B 100%);
-            color: #FFF;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 18px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            min-width: 120px;
-        }
-
-        .room-action:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(184, 122, 75, 0.35);
-        }
-
-        .room-action:disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
-            box-shadow: none;
-        }
-
-        .room-create {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-            align-items: center;
-        }
-
-        .room-create input {
-            flex: 1;
-            background-color: rgba(107, 90, 61, 0.15);
-            color: #5A4A3D;
-            border: 2px solid rgba(107, 90, 61, 0.3);
-            border-radius: 10px;
-            padding: 11px 14px;
-            font-size: 14px;
-            outline: none;
-        }
-
-        .room-create input::placeholder {
-            color: #B8A89A;
-        }
-
-        .room-create button {
-            background: linear-gradient(135deg, #A57B68 0%, #8C5C4A 100%);
-            color: #FFF;
-            border: none;
-            border-radius: 10px;
-            padding: 10px 16px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            white-space: nowrap;
-        }
-
-        .room-create button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(140, 92, 74, 0.35);
-        }
-
-        .room-create button:disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
-            box-shadow: none;
-        }
-
-        .room-item.placeholder {
-            justify-content: space-between;
-        }
-
-        .chat-page {
-            display: none;
+        /* 聊天室畫面 (修復偏移) */
+        #chatPage {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
-            background-color: #F5F5F5;
+            height: 100%; /* 使用 100% 而不是 100vh 避免行動裝置瀏覽器問題 */
+            display: flex; /* 改為 flex */
             flex-direction: column;
-            overflow: hidden;
+            background-color: var(--bg-color);
+            overflow: hidden; /* 確保不會有東西溢出 */
+            transform: translateZ(0); /* 提升圖層 */
         }
-
-        .chat-header {
-            background-color: #FFF;
-            padding: 14px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        }
-
-        .icon-button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 0;
-            width: 35px;
-            height: 35px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .icon-button svg {
-            width: 26px;
-            height: 26px;
-            fill: #5A4A3D;
-            transition: transform 0.2s ease;
-        }
-
-        .icon-button:hover svg {
-            transform: scale(1.05);
-        }
-
-        .icon-button:focus-visible {
-            outline: 2px solid rgba(90, 74, 61, 0.6);
-            outline-offset: 2px;
-        }
-
-        .chat-header-center {
-            flex: 1;
-            text-align: center;
-        }
-
-        .room-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #5A4A3D;
-            margin-bottom: 3px;
-        }
-
-        .online-count {
-            font-size: 13px;
-            color: #8B7355;
-        }
-
-        .chat-header-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            justify-content: flex-end;
-        }
-
-        .timer-badge {
-            background-color: #FFB347;
-            color: #5A4A3D;
-            padding: 3px 9px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .messages-container {
-            flex: 1;
+        
+        #messagesContainer {
+            flex: 1; /* 佔滿剩餘空間 */
             overflow-y: auto;
-            padding: 18px;
-            padding-bottom: 100px;
+            -webkit-overflow-scrolling: touch; /* iOS 滾動優化 */
         }
-
-        .notice-box {
-            background-color: #FFF;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 18px;
-            color: #5A4A3D;
-            font-size: 13px;
-            line-height: 1.7;
+        
+        /* 統計資料 */
+        #statsSection {
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 16px;
+            padding: 16px;
         }
-
-        .notice-box p {
-            margin: 6px 0;
-        }
-
-        .message-item {
+        
+        /* 圖片上傳 */
+        #imagePreviewContainer {
             display: flex;
-            flex-direction: column;
-            margin-bottom: 14px;
+            gap: 8px;
+            padding: 8px;
+            overflow-x: auto;
         }
-
-        .message-item.mine {
-            align-items: flex-end;
-        }
-
-        .message-nickname {
-            font-size: 12px;
-            color: #8B7355;
-            margin-bottom: 3px;
-            padding: 0 6px;
-        }
-
-        .admin-icon {
-            display: inline-flex;
-            align-items: center;
-            margin-left: 6px;
-        }
-
-        .admin-icon svg {
-            width: 14px;
-            height: 14px;
-            fill: currentColor;
-        }
-
-        .message-bubble {
-            max-width: 70%;
-            padding: 11px 14px;
-            border-radius: 14px;
-            word-wrap: break-word;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .message-bubble.mine {
-            background-color: #A8D5BA;
-        }
-
-        .message-bubble.others {
-            background-color: #F0E6D6;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .chat-input-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #FFF;
-            padding: 14px 16px;
-            border-top: 1px solid #E0E0E0;
-        }
-
-        .chat-input-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .message-input {
-            flex: 1;
-            background-color: #F5F5F5;
-            border: 2px solid #E0E0E0;
-            border-radius: 22px;
-            padding: 11px 18px;
-            font-size: 15px;
-            color: #333;
-            outline: none;
-        }
-
-        .btn-send {
-            background-color: #6B5A3D;
-            color: #E8DCC4;
-            border: none;
-            border-radius: 10px;
-            padding: 11px 22px;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            white-space: nowrap;
+        .preview-image-wrapper {
+            position: relative;
             flex-shrink: 0;
         }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .admin-actions {
-            display: none;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .admin-action-btn {
-            background-color: #6B5A3D;
-            color: #E8DCC4;
-            border: none;
+        .preview-image {
+            width: 70px;
+            height: 70px;
             border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
+            object-fit: cover;
+            border: 2px solid var(--input-border);
         }
-
-        .admin-action-btn:hover {
-            background-color: #544730;
-        }
-
-        .entry-notice {
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .menu-modal .modal-content {
-            background-color: #FFF;
-            border-radius: 14px;
-            padding: 28px;
-            max-width: 380px;
-            width: 90%;
-        }
-
-        .menu-title {
-            font-size: 22px;
-            font-weight: 600;
-            color: #5A4A3D;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .menu-btn {
-            background-color: #6B5A3D;
-            color: #E8DCC4;
+        .remove-image-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ff4d4d;
+            color: white;
             border: none;
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: 500;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            font-weight: bold;
             cursor: pointer;
-            width: 100%;
-            margin-bottom: 10px;
-            transition: all 0.3s;
-        }
-
-        .menu-btn:hover {
-            background-color: #544730;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding-top: 32px;
-            }
-
-            h1 {
-                font-size: 34px;
-            }
-
-            h2 {
-                font-size: 22px;
-            }
-
-            .description {
-                font-size: 14px;
-            }
-
-            .login-row {
-                flex-direction: column;
-                gap: 12px;
-            }
-
-            .section-title {
-                width: 100%;
-                text-align: center;
-            }
-
-            .nickname-input {
-                width: 100%;
-            }
-
-            .login-card {
-                padding: 22px 18px 24px;
-                gap: 18px;
-            }
-
-            .admin-buttons {
-                grid-template-columns: repeat(2, minmax(120px, 1fr));
-            }
-
-            .rooms-grid {
-                grid-template-columns: repeat(2, minmax(120px, 1fr));
-            }
-
-            .rooms-section {
-                padding: 22px 18px 26px;
-                border-radius: 20px;
-            }
-
-            .rooms-content {
-                gap: 16px;
-            }
-
-            .rooms-content h1 {
-                font-size: 28px !important;
-            }
-
-            .room-item {
-                min-height: 140px;
-            }
-        }
-
-        @media (max-width: 540px) {
-            .headline-row {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .room-create {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .room-create button {
-                width: 100%;
-            }
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
         }
     </style>
 </head>
-<body>
-    <div id="mainContainer" class="container">
-        <div class="headline">
-            <h1>花枝鼠社群專用</h1>
-            <div class="headline-row">
-                <h2>臨時私密對話小工具</h2>
-                <div class="lobby-indicator" id="lobbyIndicator">
-                    <span class="lobby-lamp" id="lobbyLamp" aria-hidden="true">
-                        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                            <circle cx="8" cy="8" r="6" />
-                        </svg>
-                    </span>
-                    <span class="lobby-status-text" id="lobbyStatusText" aria-live="polite">大廳沒有老鼠</span>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <!-- 
+      主容器: 
+      包含 登入畫面、統計(隱藏)、房間列表(隱藏)
+    -->
+    <div id="mainContainer" class="container space-y-5">
+        
+        <!-- 1. 頂部標題 & 大廳狀態 -->
+        <div class="headline text-center space-y-3 pt-4">
+            <h1 class="text-4xl md:text-5xl">花枝鼠社群專用</h1>
+            <h2 class="text-2xl md:text-3xl" style="color: var(--text-secondary);">臨時私密對話小工具</h2>
+            
+            <!-- 大廳狀態 (Requirement #1) -->
+            <div id="lobbyIndicator" class="flex items-center justify-center gap-3 p-3 bg-opacity-20 rounded-full" style="background-color: var(--card-bg);">
+                <div id="lobbyLamp" class="lobby-lamp"></div>
+                <span id="lobbyStatusText" class="text-sm font-semibold">正在連接...</span>
+            </div>
+            <div id="lastLeftTimeText" class="text-xs" style="color: var(--text-secondary);"></div>
+        </div>
+
+        <!-- 2. 說明文字 (Requirement #1) -->
+        <p class="description text-center text-lg leading-relaxed" style="color: var(--text-primary);">
+            有時候想跟群友單獨說兩句<br>
+            但是又不方便留Line怎麼辦？<br>
+            真的有人習慣好友名單保持整潔啊🥺<br>
+            現在社群提供成員一個<br>
+            不用換 Line 也能私聊一下的地方～
+        </p>
+
+        <!-- 3. 登入卡片 (Requirement #2) -->
+        <div id="loginCard" class="card space-y-5">
+            <!-- 一般成員 -->
+            <div class="login-section space-y-2">
+                <label for="nicknameInput" class="font-semibold text-lg">一般成員登入</label>
+                <input type="text" id="nicknameInput" class="input-field" placeholder="輸入你的暱稱">
+            </div>
+
+            <!-- 管理員 -->
+            <div class="admin-section space-y-3">
+                <label class="font-semibold text-lg text-center">管理員</label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <button onclick="selectAdmin(event, '吸鼠女')" class="btn btn-admin" data-admin="吸鼠女">吸鼠女</button>
+                    <button onclick="selectAdmin(event, '大白美妙')" class="btn btn-admin" data-admin="大白美妙">大白美妙</button>
+                    <button onclick="selectAdmin(event, 'Jinx')" class="btn btn-admin" data-admin="Jinx">Jinx</button>
+                    <button onclick="selectAdmin(event, '芒果')" class="btn btn-admin" data-admin="芒果">芒果</button>
+                </div>
+            </div>
+
+            <!-- 密碼 & 登入 -->
+            <div class="password-section grid md:grid-cols-2 gap-4 items-center">
+                <input type="password" id="adminPassword" class="input-field" placeholder="輸入密碼">
+                <span class="text-xs text-center md:text-left" style="color: var(--text-secondary);">(一般成員無需輸入密碼)</span>
+            </div>
+            
+            <button id="loginButton" class="btn btn-primary w-full text-lg">登入</button>
+        </div>
+
+        <!-- 4. 吸鼠女統計區 (Requirement #3) -->
+        <div id="statsSection" class="hidden space-y-3">
+            <h3 class="text-xl font-bold text-center">即時統計資料</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
+                    <div>瀏覽總次數：</div>
+                    <div id="statsTotalVisits" class="text-2xl font-bold">0 次</div>
+                </div>
+                <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
+                    <div>歷史鼠窩數量：</div>
+                    <div id="statsTotalRooms" class="text-2xl font-bold">0 個</div>
+                </div>
+            </div>
+            <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
+                <div class="font-semibold mb-2">管理員登入次數：</div>
+                <div id="statsAdminLogins" class="space-y-1 text-sm">
+                    <div>吸鼠女: 0 次</div>
+                    <div>大白美妙: 0 次</div>
+                    <div>Jinx: 0 次</div>
+                    <div>芒果: 0 次</div>
                 </div>
             </div>
         </div>
 
-        <div class="description">
-            <p>有時候想跟群友單獨說兩句，但是又不方便留Line怎麼辦？</p>
-            <p>真的有人喜歡Line 好友名單保持整潔啊🥲</p>
-            <p>現在社群提供成員一個不用換 Line 也能講悄悄話的地方。</p>
-        </div>
-
-        <div class="warning-box" id="warningBox">
-            <div class="warning-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                    <path fill="currentColor" d="M12 2.5a1.5 1.5 0 0 1 1.32.83l8.16 15.38A1.5 1.5 0 0 1 20.16 21H3.84a1.5 1.5 0 0 1-1.32-2.29l8.16-15.38A1.5 1.5 0 0 1 12 2.5zm0 2.22L4.53 19.5h14.94L12 4.72zm-.01 4.03c.52 0 .94.42.94.94v4.28a.94.94 0 1 1-1.88 0v-4.28c0-.52.42-.94.94-.94zm0 7.14a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2z"/>
-                </svg>
-            </div>
-            <div class="warning-text" id="warningText">提高警覺、嚴防詐騙、勿提供個資/轉帳</div>
-        </div>
-
-        <div class="login-card">
-            <div class="login-section">
-                <div class="login-row">
-                    <div class="section-title">一般成員</div>
-                    <input type="text" id="nicknameInput" class="nickname-input" placeholder="輸入暱稱">
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <div class="section-title" style="text-align: center;">管理員</div>
-                <div class="admin-buttons">
-                    <button onclick="selectAdmin(event, '吸鼠女')" class="btn-admin" data-admin="吸鼠女">吸鼠女</button>
-                    <button onclick="selectAdmin(event, '大白美妙')" class="btn-admin" data-admin="大白美妙">大白美妙</button>
-                    <button onclick="selectAdmin(event, '采瑄')" class="btn-admin" data-admin="采瑄">采瑄</button>
-                    <button onclick="selectAdmin(event, 'Jinx')" class="btn-admin" data-admin="Jinx">Jinx</button>
-                    <button onclick="selectAdmin(event, '芒果')" class="btn-admin" data-admin="芒果">芒果</button>
-                </div>
-                <input type="password" id="adminPassword" class="password-input" placeholder="輸入密碼">
-                <div id="loginStatus" class="login-status" aria-live="polite"></div>
-            </div>
-
-            <div id="roomsSection" class="rooms-section hidden">
-                <div class="rooms-content">
-                    <div class="room-header">
-                        <h1 style="font-size: 34px; margin-bottom: 6px;">選擇鼠窩</h1>
-                        <div class="welcome-text">歡迎 <strong id="welcomeName"></strong></div>
+        <!-- 5. 房間列表 (登入後顯示) -->
+        <div id="roomsSection" class="hidden space-y-4">
+            <h2 id="welcomeHeader" class="text-2xl font-bold text-center"></h2>
+            
+            <!-- 房間格線 (Requirement #6) -->
+            <div id="roomsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- 房間 1: 溫溫鼠窩 -->
+                <div class="room-item flex flex-col rounded-xl" data-room-id="溫溫鼠窩">
+                    <div class="flex justify-between items-center w-full">
+                        <span class="text-xl font-bold">溫溫鼠窩</span>
+                        <div class="room-lamp"></div>
                     </div>
-
-                    <div class="rooms-grid" id="roomsList">
-                        <div class="room-item" data-room="溫溫鼠窩">
-                            <div class="room-mice">
-                                <span class="room-lamp" aria-hidden="true">
-                                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                                        <circle cx="8" cy="8" r="6" />
-                                    </svg>
-                                </span>
-                                <div class="mouse-icons" aria-hidden="true"></div>
-                                <span class="room-mice-text">0 隻老鼠</span>
-                            </div>
-                            <div class="room-name">溫溫鼠窩</div>
-                            <button type="button" class="room-action" data-room="溫溫鼠窩">加入</button>
-                        </div>
-                        <div class="room-item placeholder" data-room="empty1" data-slot="1">
-                            <div class="room-mice">
-                                <span class="room-lamp" aria-hidden="true">
-                                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                                        <circle cx="8" cy="8" r="6" />
-                                    </svg>
-                                </span>
-                                <div class="mouse-icons" aria-hidden="true"></div>
-                                <span class="room-mice-text">0 隻老鼠</span>
-                            </div>
-                            <div class="room-name">鼠窩沒鼠</div>
-                            <div class="room-create">
-                                <input type="text" id="roomSlotInput1" data-slot="1" placeholder="輸入鼠窩名稱..." disabled>
-                                <button type="button" class="room-create-btn" data-slot="1" disabled>創建鼠窩</button>
-                            </div>
-                            <button type="button" class="room-action" data-room="" style="display: none;" disabled>加入</button>
-                        </div>
-                        <div class="room-item placeholder" data-room="empty2" data-slot="2">
-                            <div class="room-mice">
-                                <span class="room-lamp" aria-hidden="true">
-                                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                                        <circle cx="8" cy="8" r="6" />
-                                    </svg>
-                                </span>
-                                <div class="mouse-icons" aria-hidden="true"></div>
-                                <span class="room-mice-text">0 隻老鼠</span>
-                            </div>
-                            <div class="room-name">鼠窩沒鼠</div>
-                            <div class="room-create">
-                                <input type="text" id="roomSlotInput2" data-slot="2" placeholder="輸入鼠窩名稱..." disabled>
-                                <button type="button" class="room-create-btn" data-slot="2" disabled>創建鼠窩</button>
-                            </div>
-                            <button type="button" class="room-action" data-room="" style="display: none;" disabled>加入</button>
-                        </div>
-                        <div class="room-item placeholder" data-room="empty3" data-slot="3">
-                            <div class="room-mice">
-                                <span class="room-lamp" aria-hidden="true">
-                                    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                                        <circle cx="8" cy="8" r="6" />
-                                    </svg>
-                                </span>
-                                <div class="mouse-icons" aria-hidden="true"></div>
-                                <span class="room-mice-text">0 隻老鼠</span>
-                            </div>
-                            <div class="room-name">鼠窩沒鼠</div>
-                            <div class="room-create">
-                                <input type="text" id="roomSlotInput3" data-slot="3" placeholder="輸入鼠窩名稱..." disabled>
-                                <button type="button" class="room-create-btn" data-slot="3" disabled>創建鼠窩</button>
-                            </div>
-                            <button type="button" class="room-action" data-room="" style="display: none;" disabled>加入</button>
-                        </div>
+                    <div class="text-sm room-status-text" style="color: var(--text-green-lit);">鼠窩有 0 隻老鼠</div>
+                    <button class="btn btn-primary w-full mt-auto" onclick="enterRoom('溫溫鼠窩')">加入鼠窩</button>
+                </div>
+                
+                <!-- 房間 2: 動態 -->
+                <div class="room-item flex flex-col rounded-xl" data-room-id="slot_1">
+                    <div class="flex justify-between items-center w-full">
+                        <span class="text-xl font-bold room-name">鼠窩沒鼠</span>
+                        <div class="room-lamp"></div>
+                    </div>
+                    <!-- 狀態 1: 沒人 (創建) -->
+                    <div class="room-create w-full space-y-2 mt-auto">
+                        <input type="text" class="input-field room-create-input" placeholder="輸入新鼠窩名稱...">
+                        <button class="btn btn-primary w-full" onclick="createRoom('slot_1')">創建鼠窩</button>
+                    </div>
+                    <!-- 狀態 2: 有人 (加入) -->
+                    <div class="room-join w-full mt-auto hidden">
+                        <div class="text-sm room-status-text" style="color: var(--text-green-lit);">鼠窩有 0 隻老鼠</div>
+                        <button class="btn btn-primary w-full mt-2" onclick="enterRoom(this.dataset.roomName)">加入鼠窩</button>
                     </div>
                 </div>
+                
+                <!-- 房間 3: 動態 -->
+                <div class="room-item flex flex-col rounded-xl" data-room-id="slot_2">
+                    <div class="flex justify-between items-center w-full">
+                        <span class="text-xl font-bold room-name">鼠窩沒鼠</span>
+                        <div class="room-lamp"></div>
+                    </div>
+                    <div class="room-create w-full space-y-2 mt-auto">
+                        <input type="text" class="input-field room-create-input" placeholder="輸入新鼠窩名稱...">
+                        <button class="btn btn-primary w-full" onclick="createRoom('slot_2')">創建鼠窩</button>
+                    </div>
+                    <div class="room-join w-full mt-auto hidden">
+                        <div class="text-sm room-status-text" style="color: var(--text-green-lit);">鼠窩有 0 隻老鼠</div>
+                        <button class="btn btn-primary w-full mt-2" onclick="enterRoom(this.dataset.roomName)">加入鼠窩</button>
+                    </div>
+                </div>
+                
+                <!-- 房間 4: 動態 -->
+                <div class="room-item flex flex-col rounded-xl" data-room-id="slot_3">
+                    <div class="flex justify-between items-center w-full">
+                        <span class="text-xl font-bold room-name">鼠窩沒鼠</span>
+                        <div class="room-lamp"></div>
+                    </div>
+                    <div class="room-create w-full space-y-2 mt-auto">
+                        <input type="text" class="input-field room-create-input" placeholder="輸入新鼠窩名稱...">
+                        <button class="btn btn-primary w-full" onclick="createRoom('slot_3')">創建鼠窩</button>
+                    </div>
+                    <div class="room-join w-full mt-auto hidden">
+                        <div class="text-sm room-status-text" style="color: var(--text-green-lit);">鼠窩有 0 隻老鼠</div>
+                        <button class="btn btn-primary w-full mt-2" onclick="enterRoom(this.dataset.roomName)">加入鼠窩</button>
+                    </div>
+                </div>
+                
             </div>
         </div>
 
-        <div class="version-text">2025/10/03 創建 v1.3.1</div>
+        <!-- 6. 版本號 -->
+        <p class="version-text text-center text-sm mt-4" style="color: var(--text-secondary);">2025/10/22 v3.0.0</p>
     </div>
 
-    <div id="chatPage" class="chat-page">
-        <div class="chat-header">
-            <button class="btn-back icon-button" onclick="backToRooms()" aria-label="返回房間列表">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                    <path fill="currentColor" d="M15.53 4.47a.75.75 0 0 1 0 1.06L9.06 12l6.47 6.47a.75.75 0 0 1-1.06 1.06l-7-7a.75.75 0 0 1 0-1.06l7-7a.75.75 0 0 1 1.06 0z"/>
-                </svg>
+    <!-- 
+      聊天室畫面 (預設隱藏)
+      (Requirement #4: 修復偏移)
+    -->
+    <div id="chatPage" class="hidden">
+        
+        <!-- 聊天室頂部 -->
+        <div class="chat-header p-4 flex items-center justify-between shadow-lg" style="background-color: var(--card-bg); flex-shrink: 0;">
+            <button class="icon-button p-2" onclick="backToRooms()" aria-label="返回房間列表">
+                <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
             </button>
-            <div class="chat-header-center">
-                <div class="room-title" id="currentRoomName"></div>
-                <div class="online-count">在線：<span id="roomOnlineCount">0</span>/5</div>
+            <div class="text-center">
+                <div id="currentRoomName" class="text-lg font-bold"></div>
+                <div id="roomOnlineCount" class="text-xs" style="color: var(--text-secondary);">在線：0</div>
             </div>
-            <div class="chat-header-right">
-                <span class="timer-badge" id="messageTimer" style="display: none;"></span>
-                <div class="admin-actions" id="adminActions">
-                    <button type="button" class="admin-action-btn" id="clearChatBtn" onclick="clearChat()">清空對話</button>
-                    <button type="button" class="admin-action-btn" id="statsBtn" onclick="showStats()">統計人次</button>
-                </div>
-                <button class="btn-menu icon-button" onclick="showMenu()" aria-label="開啟選單">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
-                        <path fill="currentColor" d="M12 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm0 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm0 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
-                    </svg>
+            <button class="icon-button p-2" onclick="logout()" aria-label="登出">
+                 <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V5h10a1 1 0 100-2H3zm12.293 4.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 13H9a1 1 0 110-2h7.586l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+            </button>
+        </div>
+
+        <!-- 訊息顯示區 -->
+        <div id="messagesContainer" class="p-4 space-y-4">
+            <!-- 歡迎訊息 -->
+            <div class="notice-box p-4 rounded-lg text-sm" style="background-color: var(--card-bg);">
+                <p id="entryNotice" class="font-bold mb-2"></p>
+                <p><strong>提醒：</strong>訊息會在發送 1 小時後自動清除 (包含圖片)。</p>
+                <p>當所有成員離開此聊天室時，系統會自動清空對話記錄。</p>
+            </div>
+            <!-- 訊息列表 -->
+            <div id="messagesList" class="space-y-4"></div>
+        </div>
+        
+        <!-- 
+          輸入區 (Requirement #5: 傳圖功能)
+        -->
+        <div class="chat-input-container p-3" style="background-color: var(--card-bg); flex-shrink: 0;">
+            <!-- 圖片預覽 -->
+            <div id="imagePreviewContainer" class="mb-2">
+                <!-- 預覽圖片會動態插入這裡 -->
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- 隱藏的檔案上傳 -->
+                <input type="file" id="imageInput" accept="image/*" multiple class="hidden" onchange="handleImageSelection(event)">
+                
+                <!-- 傳圖按鈕 -->
+                <button id="attachButton" class="icon-button p-2" onclick="document.getElementById('imageInput').click()" aria-label="傳送圖片">
+                    <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10zm-9-1a1 1 0 100 2 1 1 0 000-2zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
                 </button>
+                
+                <!-- 文字輸入 -->
+                <input type="text" id="messageInput" class="input-field flex-1" placeholder="輸入訊息..." onkeypress="handleKeyPress(event)">
+                
+                <!-- 發送按鈕 -->
+                <button id="sendButton" class="btn btn-primary" onclick="sendMessage()">發送</button>
             </div>
         </div>
 
-        <div class="messages-container" id="messagesContainer">
-            <div class="notice-box">
-                <p id="entryNotice" class="entry-notice"></p>
-                <p><strong>提醒：</strong>訊息會在發送 1 小時後自動清除</p>
-                <p>文字與圖示僅提供臨時交流，請勿外傳</p>
-                <p>傳訊禮貌請維持，請勿於此進行金錢往來</p>
-                <p>當所有成員離開此聊天室時，系統會自動清空對話記錄</p>
-                <p style="margin-top: 10px;"><strong>最後提醒：</strong></p>
-                <p>1. 請勿在此向他人借錢</p>
-                <p>2. 請勿在此借錢給他人</p>
-                <p>3. 請勿在此講我壞話</p>
-            </div>
-            <div id="messagesList"></div>
-        </div>
-
-        <div class="chat-input-container">
-            <div class="chat-input-row">
-                <input type="text" id="messageInput" class="message-input" placeholder="輸入訊息..." onkeypress="handleKeyPress(event)">
-                <button class="btn-send" onclick="sendMessage()">發送</button>
-            </div>
-        </div>
     </div>
 
-    <div id="menuModal" class="modal menu-modal" onclick="closeMenu()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="menu-title">選單</div>
-            <button onclick="logout()" class="menu-btn">登出</button>
-        </div>
-    </div>
-
+    <!-- 
+      =================================
+      JavaScript 腳本
+      =================================
+    -->
     <script type="module">
+        // --- 全域變數 ---
         let currentUser = null;
         let currentRoom = null;
         let selectedAdmin = null;
-        let countdownInterval = null;
-        let cleanupInterval = null;
-        let messageExpiryTimestamp = null;
-        let messagesListener = null;
-        let onlineListener = null;
-        let allRoomsListener = null;
-        let userPresenceRef = null;
+        let lobbySessionId = `lobby_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         let pagePresenceRef = null;
-        let roomsInitialized = false;
+        let userRoomPresenceRef = null;
+        let messagesListener = null;
+        let roomOnlineListener = null;
+        let allRoomsListener = null;
         let lobbyListener = null;
-        let visitRecorded = false;
-        let latestRoomsData = {};
-        let isLobbyPresenceActive = false;
-        const pendingRoomClears = new Map();
+        let lastLobbyCount = 0;
+        let pendingImages = []; // (Requirement #5)
 
+        // 管理員密碼 (注意: 儲存在前端不安全，僅為演示)
         const adminPasswords = {
             '吸鼠女': '444',
-            '采瑄': '151',
-            '芒果': 'Ying',
             '大白美妙': 'totoro',
-            'Jinx': 'jinx'
+            'Jinx': 'jinx',
+            '芒果': 'Ying'
         };
 
-        const lobbySessionId = `lobby_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        // --- 頁面初始化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            applyRandomTheme();
+            initializeLobbyPresence();
+            displayLastLeftTime();
+            
+            // 綁定登入按鈕事件
+            document.getElementById('loginButton').addEventListener('click', login);
+            
+            // 綁定 Enter 鍵
+            document.getElementById('nicknameInput').addEventListener('keypress', (e) => e.key === 'Enter' && login());
+            document.getElementById('adminPassword').addEventListener('keypress', (e) => e.key === 'Enter' && login());
+        });
+        
+        // 套用隨機莫蘭迪主題
+        function applyRandomTheme() {
+            const themes = ['theme-1', 'theme-2', 'theme-3', 'theme-4', 'theme-5'];
+            const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+            document.body.classList.add(randomTheme);
+        }
 
-        const morandiSchemes = [
-            { bg: '#4B3A41', text: '#F7F1EA' },
-            { bg: '#3F4856', text: '#F4EFE9' },
-            { bg: '#4A4F46', text: '#F6F1EB' },
-            { bg: '#4C3F4F', text: '#F5EFE7' },
-            { bg: '#3D4D4F', text: '#F3EDE6' },
-            { bg: '#4F433D', text: '#F6F0E9' }
-        ];
-
-        const warningStyles = [
-            { bg: '#FF0000', color: '#FFFFFF' },
-            { bg: '#000000', color: '#FFFF00' },
-            { bg: '#000000', color: '#FFFFFF' }
-        ];
-
-        const SVG_NS = 'http://www.w3.org/2000/svg';
-
+        // --- 1. 大廳狀態 (Requirement #1) ---
+        
+        // 初始化大廳狀態 (進入網站)
         async function initializeLobbyPresence() {
-            if (!window.firebaseDB || isLobbyPresenceActive) {
-                return;
-            }
-
+            if (!window.firebaseDB) return;
+            pagePresenceRef = window.firebaseRef(window.firebaseDB, `pageOnline/${lobbySessionId}`);
+            
             try {
-                pagePresenceRef = window.firebaseRef(window.firebaseDB, `pageOnline/${lobbySessionId}`);
-                await window.firebaseSet(pagePresenceRef, {
-                    nickname: '訪客',
-                    isAdmin: false,
-                    timestamp: Date.now()
-                });
+                // 標記自己上線
+                await window.firebaseSet(pagePresenceRef, { joinTime: window.firebaseServerTimestamp() });
+                // 設定離線時自動移除
                 window.firebaseOnDisconnect(pagePresenceRef).remove();
-                isLobbyPresenceActive = true;
             } catch (error) {
-                console.warn('無法建立大廳狀態', error);
+                console.error("無法設定大廳狀態: ", error);
             }
-        }
-
-        async function updateLobbyPresence() {
-            if (!window.firebaseDB) {
-                return;
-            }
-
-            if (!pagePresenceRef) {
-                await initializeLobbyPresence();
-            }
-
-            if (!pagePresenceRef) {
-                return;
-            }
-
-            const payload = currentUser ?
-            {
-                nickname: currentUser.nickname,
-                isAdmin: currentUser.isAdmin,
-                timestamp: Date.now()
-            } : {
-                nickname: '訪客',
-                isAdmin: false,
-                timestamp: Date.now()
-            };
-
-            try {
-                await window.firebaseSet(pagePresenceRef, payload);
-            } catch (error) {
-                console.warn('更新大廳狀態失敗', error);
-            }
-        }
-
-        function createCrownIcon() {
-            const svg = document.createElementNS(SVG_NS, 'svg');
-            svg.setAttribute('viewBox', '0 0 24 24');
-            svg.setAttribute('aria-hidden', 'true');
-            svg.setAttribute('focusable', 'false');
-            const path = document.createElementNS(SVG_NS, 'path');
-            path.setAttribute('d', 'M4 7.5l3.5 3 2.5-4 2.5 4 3.5-3 4 6.5v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-5l0-0.02L4 7.5zm2 10.5h12v-3.93l-2.79-4.54-2.83 2.42-2.38-3.8-2.38 3.8-2.83-2.42L6 14.07V18z');
-            path.setAttribute('fill', 'currentColor');
-            svg.appendChild(path);
-            return svg;
-        }
-
-        function createMouseIcon() {
-            const svg = document.createElementNS(SVG_NS, 'svg');
-            svg.setAttribute('viewBox', '0 0 24 24');
-            svg.setAttribute('aria-hidden', 'true');
-            svg.setAttribute('focusable', 'false');
-
-            const tail = document.createElementNS(SVG_NS, 'path');
-            tail.setAttribute('d', 'M17 14c2.2 1 3.5 2.4 3.5 4 0 1.1-.7 1.9-1.8 1.9-1 0-1.6-.6-1.6-1.4');
-            tail.setAttribute('fill', 'none');
-            tail.setAttribute('stroke', 'currentColor');
-            tail.setAttribute('stroke-width', '1.4');
-            tail.setAttribute('stroke-linecap', 'round');
-            tail.setAttribute('stroke-linejoin', 'round');
-
-            const body = document.createElementNS(SVG_NS, 'ellipse');
-            body.setAttribute('cx', '12');
-            body.setAttribute('cy', '14');
-            body.setAttribute('rx', '7');
-            body.setAttribute('ry', '6');
-            body.setAttribute('fill', 'currentColor');
-
-            const earLeft = document.createElementNS(SVG_NS, 'circle');
-            earLeft.setAttribute('cx', '8.2');
-            earLeft.setAttribute('cy', '9');
-            earLeft.setAttribute('r', '2.4');
-            earLeft.setAttribute('fill', 'currentColor');
-
-            const earRight = document.createElementNS(SVG_NS, 'circle');
-            earRight.setAttribute('cx', '15.8');
-            earRight.setAttribute('cy', '9');
-            earRight.setAttribute('r', '2.4');
-            earRight.setAttribute('fill', 'currentColor');
-
-            const nose = document.createElementNS(SVG_NS, 'circle');
-            nose.setAttribute('cx', '19');
-            nose.setAttribute('cy', '13');
-            nose.setAttribute('r', '1.1');
-            nose.setAttribute('fill', 'currentColor');
-
-            svg.appendChild(tail);
-            svg.appendChild(earLeft);
-            svg.appendChild(earRight);
-            svg.appendChild(body);
-            svg.appendChild(nose);
-            return svg;
-        }
-
-        const randomScheme = morandiSchemes[Math.floor(Math.random() * morandiSchemes.length)];
-        const randomWarning = warningStyles[Math.floor(Math.random() * warningStyles.length)];
-
-        document.body.style.backgroundColor = randomScheme.bg;
-
-        document.querySelectorAll('h1, h2, .description, .description p, .version-text').forEach(el => {
-            el.style.color = randomScheme.text;
-        });
-
-        const warningText = document.getElementById('warningText');
-        warningText.style.backgroundColor = randomWarning.bg;
-        warningText.style.color = randomWarning.color;
-
-        setRoomControlsEnabled(false);
-        initializeLobbyPresence();
-        listenToLobbyPresence();
-        listenToAllRooms();
-
-        function updateLoginStatus() {
-            const statusEl = document.getElementById('loginStatus');
-            if (!statusEl) return;
-
-            if (currentUser && currentUser.isAdmin) {
-                statusEl.textContent = `登入身分：管理員（${currentUser.nickname}）`;
-                statusEl.style.display = 'block';
-            } else {
-                statusEl.textContent = '';
-                statusEl.style.display = 'none';
-            }
-        }
-
-        function setRoomControlsEnabled(enabled) {
-            const roomsSection = document.getElementById('roomsSection');
-            if (roomsSection) {
-                roomsSection.classList.toggle('disabled', !enabled);
-            }
-
-            document.querySelectorAll('.room-create input').forEach(input => {
-                input.disabled = !enabled;
-                if (!enabled) {
-                    input.value = '';
-                }
-            });
-
-            document.querySelectorAll('.room-create button').forEach(btn => {
-                btn.disabled = !enabled;
-            });
-
-            document.querySelectorAll('.room-action').forEach(btn => {
-                const hasRoom = btn.dataset.room && btn.dataset.room !== '';
-                const isFull = btn.dataset.full === '1';
-                btn.disabled = !hasRoom || isFull;
-            });
-
-            if (latestRoomsData && Object.keys(latestRoomsData).length > 0) {
-                updateRoomsList(latestRoomsData);
-            }
-        }
-
-        function ensureUserProfile() {
-            if (currentUser) {
-                return true;
-            }
-
-            const nicknameInput = document.getElementById('nicknameInput');
-            const passwordInput = document.getElementById('adminPassword');
-            const nickname = nicknameInput.value.trim();
-            const password = passwordInput.value;
-
-            if (selectedAdmin) {
-                if (!password) {
-                    alert('請輸入暱稱或選擇身分並填入密碼');
-                    return false;
-                }
-
-                if (password !== adminPasswords[selectedAdmin]) {
-                    alert('密碼錯誤');
-                    return false;
-                }
-
-                currentUser = {
-                    id: 'admin_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                    nickname: selectedAdmin,
-                    isAdmin: true
-                };
-            } else {
-                if (!nickname) {
-                    alert('請輸入暱稱或選擇身分並填入密碼');
-                    return false;
-                }
-
-                currentUser = {
-                    id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                    nickname: nickname,
-                    isAdmin: false
-                };
-            }
-
-            nicknameInput.value = currentUser.nickname;
-            nicknameInput.setAttribute('readonly', 'true');
-            nicknameInput.classList.add('readonly');
-
-            passwordInput.style.display = 'none';
-            passwordInput.value = '';
-
-            document.querySelectorAll('.btn-admin').forEach(btn => btn.classList.remove('selected'));
-            selectedAdmin = null;
-
-            updateLobbyPresence();
-            updateLoginStatus();
-            return true;
-        }
-
-        async function showRoomsSection() {
-            const roomsSection = document.getElementById('roomsSection');
-            const mainContainer = document.getElementById('mainContainer');
-
-            roomsSection.classList.remove('hidden');
-            document.body.classList.add('logged-in');
-            mainContainer.classList.add('rooms-visible');
-            document.getElementById('welcomeName').textContent = currentUser.nickname;
-
-            setRoomControlsEnabled(true);
-
-            if (!roomsInitialized) {
-                listenToAllRooms();
-                roomsInitialized = true;
-            }
-
-            if (window.firebaseDB) {
-                await updateLobbyPresence();
-                await recordVisit();
-            }
-
-            roomsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        async function attemptLogin() {
-            if (currentUser) {
-                return;
-            }
-
-            if (!ensureUserProfile()) {
-                return;
-            }
-
-            await showRoomsSection();
-        }
-
-        window.selectAdmin = function(event, adminName) {
-            if (currentUser) {
-                return;
-            }
-
-            document.querySelectorAll('.btn-admin').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-
-            event.target.classList.add('selected');
-            selectedAdmin = adminName;
-            const passwordInput = document.getElementById('adminPassword');
-            passwordInput.style.display = 'block';
-            passwordInput.focus();
-        };
-
-        document.addEventListener('click', function(event) {
-            if (currentUser) {
-                return;
-            }
-
-            const isAdminButton = event.target.classList.contains('btn-admin');
-            const isPasswordInput = event.target.id === 'adminPassword';
-
-            if (!isAdminButton && !isPasswordInput) {
-                document.querySelectorAll('.btn-admin').forEach(btn => {
-                    btn.classList.remove('selected');
-                });
-                selectedAdmin = null;
-                const passwordInput = document.getElementById('adminPassword');
-                passwordInput.style.display = 'none';
-                passwordInput.value = '';
-            }
-        });
-
-        document.getElementById('nicknameInput').addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                attemptLogin();
-            }
-        });
-
-        document.getElementById('adminPassword').addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                attemptLogin();
-            }
-        });
-
-        document.querySelectorAll('.room-create-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                const slot = button.getAttribute('data-slot');
-                window.createRoomFromSlot(slot);
-            });
-        });
-
-        function listenToAllRooms() {
-            if (!window.firebaseDB) return;
-
-            const roomsRef = window.firebaseRef(window.firebaseDB, 'rooms');
-
-            if (allRoomsListener) {
-                allRoomsListener();
-            }
-
-            allRoomsListener = window.firebaseOnValue(roomsRef, (snapshot) => {
-                const roomsData = snapshot.val() || {};
-                updateRoomsList(roomsData);
-            });
-        }
-
-        function updateRoomsList(roomsData) {
-            latestRoomsData = roomsData || {};
-
-            const customRooms = Object.keys(latestRoomsData).filter(roomName => roomName !== '溫溫鼠窩');
-
-            const defaultRoomElement = document.querySelector('#roomsList [data-room="溫溫鼠窩"]');
-            if (defaultRoomElement) {
-                const defaultRoomData = latestRoomsData['溫溫鼠窩'] || {};
-                const defaultOnline = defaultRoomData.online ? Object.keys(defaultRoomData.online).length : 0;
-                updateRoomElement(defaultRoomElement, '溫溫鼠窩', defaultOnline, false);
-            }
-
-            const slotElements = Array.from(document.querySelectorAll('#roomsList [data-slot]'));
-            slotElements.forEach((slot, index) => {
-                const slotNumber = slot.getAttribute('data-slot') || String(index + 1);
-                const roomName = customRooms[index];
-
-                if (roomName) {
-                    const roomData = latestRoomsData[roomName] || {};
-                    const onlineCount = roomData.online ? Object.keys(roomData.online).length : 0;
-                    slot.classList.remove('placeholder');
-                    slot.setAttribute('data-room', roomName);
-                    updateRoomElement(slot, roomName, onlineCount, false);
-                } else {
-                    slot.classList.add('placeholder');
-                    slot.setAttribute('data-room', `empty${slotNumber}`);
-                    const input = slot.querySelector('input[data-slot]');
-                    if (input) {
-                        input.value = '';
-                    }
-                    updateRoomElement(slot, '鼠窩沒鼠', 0, true, slotNumber);
-                }
-            });
-
-            autoClearEmptyRooms(latestRoomsData);
-        }
-
-        function autoClearEmptyRooms(roomsData) {
-            if (!window.firebaseDB) return;
-
-            Object.entries(roomsData).forEach(([roomName, roomData]) => {
-                if (!roomData) return;
-
-                const onlineCount = roomData.online ? Object.keys(roomData.online).length : 0;
-
-                if (onlineCount === 0 && roomData.messages) {
-                    if (pendingRoomClears.has(roomName)) {
-                        return;
-                    }
-
-                    const timeoutId = setTimeout(async () => {
-                        pendingRoomClears.delete(roomName);
-
-                        try {
-                            const roomRef = window.firebaseRef(window.firebaseDB, `rooms/${roomName}`);
-                            const snapshot = await new Promise(resolve => {
-                                window.firebaseOnValue(roomRef, resolve, { onlyOnce: true });
-                            });
-
-                            const latestData = snapshot.val();
-                            const latestOnline = latestData && latestData.online ? Object.keys(latestData.online).length : 0;
-
-                            if (latestOnline === 0 && latestData && latestData.messages) {
-                                const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${roomName}/messages`);
-                                window.firebaseRemove(messagesRef);
-                            }
-                        } catch (error) {
-                            console.error(`Failed to auto-clear room ${roomName}`, error);
-                        }
-                    }, 5000);
-
-                    pendingRoomClears.set(roomName, timeoutId);
-                } else if (pendingRoomClears.has(roomName)) {
-                    clearTimeout(pendingRoomClears.get(roomName));
-                    pendingRoomClears.delete(roomName);
-                }
-            });
-        }
-
-        function updateRoomElement(element, name, count, isPlaceholder = false, slotNumber = null) {
-            const lamp = element.querySelector('.room-lamp');
-            const miceText = element.querySelector('.room-mice-text');
-            const iconsContainer = element.querySelector('.mouse-icons');
-            const nameSpan = element.querySelector('.room-name');
-            const createWrapper = element.querySelector('.room-create');
-            const actionButton = element.querySelector('.room-action');
-
-            const displayName = isPlaceholder ? '鼠窩沒鼠' : name;
-            if (nameSpan) {
-                nameSpan.textContent = displayName;
-            }
-
-            if (lamp) {
-                lamp.classList.toggle('on', count > 0);
-            }
-
-            const actualCount = Math.max(0, count || 0);
-            const clampedCount = Math.min(actualCount, 5);
-
-            if (miceText) {
-                miceText.textContent = `${actualCount} 隻老鼠`;
-            }
-
-            if (iconsContainer) {
-                iconsContainer.innerHTML = '';
-                for (let i = 0; i < clampedCount; i += 1) {
-                    iconsContainer.appendChild(createMouseIcon());
-                }
-            }
-
-            element.classList.toggle('has-users', count > 0 && !isPlaceholder);
-
-            if (isPlaceholder) {
-                if (createWrapper) {
-                    createWrapper.style.display = 'flex';
-                }
-                if (actionButton) {
-                    actionButton.style.display = 'none';
-                    actionButton.disabled = true;
-                    actionButton.dataset.room = '';
-                    actionButton.dataset.full = '0';
-                }
-            } else {
-                if (createWrapper) {
-                    createWrapper.style.display = 'none';
-                }
-                if (actionButton) {
-                    actionButton.style.display = 'inline-flex';
-                    actionButton.textContent = count >= 5 ? '已滿' : '加入';
-                    actionButton.disabled = count >= 5;
-                    actionButton.dataset.room = name;
-                    actionButton.dataset.full = count >= 5 ? '1' : '0';
-                    actionButton.onclick = () => window.enterRoom(name);
-                }
-            }
-
-            if (isPlaceholder && createWrapper) {
-                const input = createWrapper.querySelector('input[data-slot]');
-                if (input && slotNumber) {
-                    input.setAttribute('data-slot', slotNumber);
-                }
-                const button = createWrapper.querySelector('button[data-slot]');
-                if (button && slotNumber) {
-                    button.setAttribute('data-slot', slotNumber);
-                }
-            }
-        }
-
-        window.createRoomFromSlot = function(slotNumber) {
-            const input = document.querySelector(`.room-create input[data-slot="${slotNumber}"]`);
-            if (!input) {
-                return;
-            }
-
-            const roomName = input.value.trim();
-            if (!roomName) {
-                alert('請輸入鼠窩名稱');
-                return;
-            }
-
-            if (roomName.length > 20) {
-                alert('房間名稱不能超過 20 個字');
-                return;
-            }
-
-            input.value = '';
-            window.enterRoom(roomName);
-        };
-
-        async function recordVisit() {
-            if (!window.firebaseDB || visitRecorded || !currentUser) {
-                if (currentUser) {
-                    await updateLobbyPresence();
-                }
-                return;
-            }
-
-            try {
-                await updateLobbyPresence();
-
-                const visitsRef = window.firebaseRef(window.firebaseDB, 'stats/visits');
-                await window.firebasePush(visitsRef, {
-                    nickname: currentUser.nickname,
-                    isAdmin: currentUser.isAdmin,
-                    timestamp: Date.now()
-                });
-
-                if (currentUser.isAdmin) {
-                    const adminRef = window.firebaseRef(window.firebaseDB, `stats/adminLogins/${currentUser.nickname}`);
-                    await window.firebasePush(adminRef, {
-                        timestamp: Date.now()
-                    });
-                }
-
-                visitRecorded = true;
-            } catch (error) {
-                console.warn('紀錄瀏覽人次失敗', error);
-            }
-        }
-
-        function listenToLobbyPresence() {
-            if (!window.firebaseDB) return;
-
+            
+            // 監聽大廳總人數
             const lobbyRef = window.firebaseRef(window.firebaseDB, 'pageOnline');
-
-            if (lobbyListener) {
-                lobbyListener();
-            }
-
+            if (lobbyListener) lobbyListener(); // 移除舊監聽
+            
             lobbyListener = window.firebaseOnValue(lobbyRef, (snapshot) => {
-                const lobbyData = snapshot.val() || {};
-                const count = Object.keys(lobbyData).length;
+                const count = snapshot.numChildren();
                 updateLobbyIndicator(count);
+                
+                // 偵測是否剛從有人變沒人
+                if (lastLobbyCount > 0 && count === 0) {
+                    // 記錄最後離開時間
+                    window.firebaseSet(window.firebaseRef(window.firebaseDB, 'stats/lastLeftTime'), window.firebaseServerTimestamp());
+                }
+                lastLobbyCount = count;
             });
         }
-
+        
+        // 更新大廳 UI
         function updateLobbyIndicator(count) {
             const lamp = document.getElementById('lobbyLamp');
             const text = document.getElementById('lobbyStatusText');
@@ -1649,589 +585,546 @@
 
             if (count > 0) {
                 lamp.classList.add('on');
-                text.textContent = `大廳有${count}隻老鼠`;
+                text.textContent = `大廳有 ${count} 隻老鼠`;
             } else {
                 lamp.classList.remove('on');
                 text.textContent = '大廳沒有老鼠';
             }
         }
 
-        function formatTimestamp(timestamp) {
-            if (!timestamp) return '未知時間';
+        // 顯示上次離開時間
+        async function displayLastLeftTime() {
+            if (!window.firebaseDB) return;
+            const lastLeftRef = window.firebaseRef(window.firebaseDB, 'stats/lastLeftTime');
+            const lastLeftText = document.getElementById('lastLeftTimeText');
+            
             try {
-                return new Date(timestamp).toLocaleString('zh-TW', { hour12: false });
-            } catch (error) {
-                return '未知時間';
-            }
-        }
-
-        window.enterRoom = async function(roomName) {
-            if (!window.firebaseDB) {
-                alert('Firebase 未配置，無法使用即時功能');
-                return;
-            }
-
-            if (roomName === '鼠窩沒鼠' || roomName.startsWith('empty')) {
-                alert('此房間尚未命名或無人使用');
-                return;
-            }
-
-            if (!currentUser) {
-                if (!ensureUserProfile()) {
+                const snapshot = await window.firebaseGet(lastLeftRef);
+                if (!snapshot.exists()) {
+                    lastLeftText.textContent = '歡迎第一隻老鼠！';
                     return;
                 }
-            }
-
-            if (!roomsInitialized) {
-                await showRoomsSection();
-            }
-
-            const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${roomName}/online`);
-            const uid = currentUser.id;
-            const presence = {
-                nickname: currentUser.nickname,
-                isAdmin: currentUser.isAdmin,
-                joinTime: Date.now()
-            };
-
-            let transactionResult;
-            try {
-                transactionResult = await window.firebaseRunTransaction(onlineRef, (current) => {
-                    current = current || {};
-                    const alreadyIn = !!current[uid];
-                    const count = Object.keys(current).length;
-
-                    if (!alreadyIn && count >= 5) {
-                        return;
-                    }
-
-                    current[uid] = presence;
-                    return current;
-                }, { applyLocally: false });
+                
+                const lastLeftTime = snapshot.val();
+                const diffMs = Date.now() - lastLeftTime;
+                
+                if (diffMs < 60000) { // 一分鐘內
+                    lastLeftText.textContent = '上一隻老鼠剛剛離開';
+                    return;
+                }
+                
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                
+                lastLeftText.textContent = `上一隻老鼠在 ${diffDays} 天 ${diffHours} 小時前離開了`;
+                
             } catch (error) {
-                console.error('Failed to join room via transaction', error);
-                alert('暫時無法加入此房間，請稍後再試');
+                console.error("無法取得上次離開時間: ", error);
+                lastLeftText.textContent = '無法讀取訪客紀錄';
+            }
+        }
+
+        // --- 2. 登入邏輯 (Requirement #2) ---
+        
+        // 選擇管理員
+        window.selectAdmin = function(event, adminName) {
+            selectedAdmin = adminName;
+            // 更新按鈕樣式
+            document.querySelectorAll('.btn-admin').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.admin === adminName);
+            });
+            document.getElementById('adminPassword').focus();
+        }
+
+        // 登入按鈕
+        async function login() {
+            const nicknameInput = document.getElementById('nicknameInput');
+            const passwordInput = document.getElementById('adminPassword');
+            const nickname = nicknameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (selectedAdmin) {
+                // 管理員登入
+                if (!password) {
+                    alert('請輸入密碼');
+                    return;
+                }
+                if (password !== adminPasswords[selectedAdmin]) {
+                    alert('管理員密碼錯誤！');
+                    return;
+                }
+                currentUser = {
+                    id: 'admin_' + selectedAdmin,
+                    nickname: selectedAdmin,
+                    isAdmin: true
+                };
+            } else if (nickname) {
+                // 一般成員登入
+                currentUser = {
+                    id: 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9),
+                    nickname: nickname,
+                    isAdmin: false
+                };
+            } else {
+                alert('請輸入暱稱，或選擇管理員並輸入密碼');
                 return;
             }
 
-            if (!transactionResult?.committed || !transactionResult.snapshot?.val()?.[uid]) {
-                alert('此房間已滿（最多 5 人）');
+            // 登入成功
+            document.getElementById('loginCard').classList.add('hidden');
+            document.getElementById('roomsSection').classList.remove('hidden');
+            document.getElementById('welcomeHeader').textContent = `歡迎，${currentUser.nickname}`;
+            
+            // 紀錄統計
+            await recordVisitStats();
+            
+            // (Requirement #3) 顯示吸鼠女統計
+            if (currentUser.nickname === '吸鼠女') {
+                document.getElementById('statsSection').classList.remove('hidden');
+                showAdminStats();
+            }
+            
+            // 開始監聽所有房間
+            listenToAllRooms();
+        }
+
+        // --- 3. 統計功能 (Requirement #3) ---
+
+        // 紀錄登入/瀏覽
+        async function recordVisitStats() {
+            if (!window.firebaseDB) return;
+            
+            // 增加總瀏覽次數
+            const visitsRef = window.firebaseRef(window.firebaseDB, 'stats/totalVisits');
+            window.firebaseRunTransaction(visitsRef, (currentValue) => (currentValue || 0) + 1);
+            
+            // 紀錄管理員登入
+            if (currentUser.isAdmin) {
+                const adminLoginRef = window.firebaseRef(window.firebaseDB, `stats/adminLogins/${currentUser.nickname}`);
+                window.firebaseRunTransaction(adminLoginRef, (currentValue) => (currentValue || 0) + 1);
+            }
+        }
+        
+        // 顯示管理員統計
+        async function showAdminStats() {
+            if (!window.firebaseDB) return;
+            const statsRef = window.firebaseRef(window.firebaseDB, 'stats');
+            
+            try {
+                const snapshot = await window.firebaseGet(statsRef);
+                const stats = snapshot.val() || {};
+                
+                const totalVisits = stats.totalVisits || 0;
+                const totalRooms = stats.totalRoomsCreated || 0;
+                const adminLogins = stats.adminLogins || {};
+                
+                document.getElementById('statsTotalVisits').textContent = `${totalVisits} 次`;
+                document.getElementById('statsTotalRooms').textContent = `${totalRooms} 個`;
+                
+                const adminStatsHTML = Object.keys(adminPasswords)
+                    .map(adminName => {
+                        const count = adminLogins[adminName] || 0;
+                        return `<div>${adminName}: ${count} 次</div>`;
+                    })
+                    .join('');
+                document.getElementById('statsAdminLogins').innerHTML = adminStatsHTML;
+                
+            } catch (error) {
+                console.error("無法載入統計資料: ", error);
+            }
+        }
+
+        // --- 4. 房間列表邏輯 (Requirement #6) ---
+        
+        // 監聽所有房間
+        function listenToAllRooms() {
+            if (!window.firebaseDB) return;
+            const roomsRef = window.firebaseRef(window.firebaseDB, 'rooms');
+            
+            if (allRoomsListener) allRoomsListener(); // 移除舊監聽
+            
+            allRoomsListener = window.firebaseOnValue(roomsRef, (snapshot) => {
+                const roomsData = snapshot.val() || {};
+                const dynamicRoomNames = Object.keys(roomsData).filter(name => name !== '溫溫鼠窩');
+                
+                // 1. 更新溫溫鼠窩
+                updateRoomUI(
+                    document.querySelector('[data-room-id="溫溫鼠窩"]'),
+                    '溫溫鼠窩',
+                    roomsData['溫溫鼠窩']
+                );
+                
+                // 2. 更新三個動態鼠窩
+                const slots = ['slot_1', 'slot_2', 'slot_3'];
+                slots.forEach((slotId, index) => {
+                    const roomName = dynamicRoomNames[index];
+                    const roomElement = document.querySelector(`[data-room-id="${slotId}"]`);
+                    
+                    if (roomName) {
+                        // 這個欄位被佔用了
+                        updateRoomUI(roomElement, roomName, roomsData[roomName]);
+                    } else {
+                        // 這個欄位是空的
+                        updateRoomUI(roomElement, null, null);
+                    }
+                });
+            });
+        }
+        
+        // 更新單一房間的 UI
+        function updateRoomUI(element, roomName, roomData) {
+            const lamp = element.querySelector('.room-lamp');
+            const roomNameEl = element.querySelector('.room-name');
+            const createDiv = element.querySelector('.room-create');
+            const joinDiv = element.querySelector('.room-join');
+            const statusText = joinDiv.querySelector('.room-status-text');
+            const joinButton = joinDiv.querySelector('button');
+            
+            const onlineCount = roomData && roomData.online ? Object.keys(roomData.online).length : 0;
+            
+            if (roomName && (onlineCount > 0 || roomName === '溫溫鼠窩')) {
+                // 狀態: 房間有人 (或是固定的溫溫鼠窩)
+                lamp.classList.add('on');
+                if (roomNameEl) roomNameEl.textContent = roomName; // 更新名稱
+                createDiv.classList.add('hidden');
+                joinDiv.classList.remove('hidden');
+                statusText.textContent = `鼠窩有 ${onlineCount} 隻老鼠`;
+                joinButton.dataset.roomName = roomName;
+                
+                // (Requirement #4) 修復溫溫鼠窩按鈕
+                if (roomName === '溫溫鼠窩') {
+                    const btn = element.querySelector('.btn-primary');
+                    btn.disabled = false;
+                }
+                
+            } else if (roomName && onlineCount === 0) {
+                 // 狀態: 房間是動態的，但裡面沒人 (例如剛創建或人走光了)
+                 // 自動刪除這個空房間
+                 window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${roomName}`));
+                 // UI 會在下一次 onValue 自動更新回 "鼠窩沒鼠"
+                 
+            } else {
+                // 狀態: 房間是空的 (鼠窩沒鼠)
+                lamp.classList.remove('on');
+                if (roomNameEl) roomNameEl.textContent = '鼠窩沒鼠';
+                createDiv.classList.remove('hidden');
+                joinDiv.classList.add('hidden');
+                // 清空輸入框
+                createDiv.querySelector('input').value = '';
+            }
+        }
+        
+        // 創建房間
+        window.createRoom = function(slotId) {
+            const element = document.querySelector(`[data-room-id="${slotId}"]`);
+            const input = element.querySelector('input');
+            const roomName = input.value.trim();
+            
+            if (!roomName) {
+                alert('請輸入鼠窩名稱');
                 return;
             }
+            if (roomName === '溫溫鼠窩') {
+                alert('這個名稱不可以用喔');
+                return;
+            }
+            
+            // 紀錄歷史鼠窩數量
+            const roomsCountRef = window.firebaseRef(window.firebaseDB, 'stats/totalRoomsCreated');
+            window.firebaseRunTransaction(roomsCountRef, (currentValue) => (currentValue || 0) + 1);
+            
+            // 進入房間
+            enterRoom(roomName);
+        }
 
+        // --- 5. 聊天室邏輯 (Requirement #4, #5) ---
+
+        // 進入房間
+        window.enterRoom = async function(roomName) {
             currentRoom = roomName;
+            
+            // 設定在線狀態
+            const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
+            userRoomPresenceRef = onlineRef;
+            
+            await window.firebaseSet(onlineRef, {
+                nickname: currentUser.nickname,
+                isAdmin: currentUser.isAdmin
+            });
+            // 離線/關閉網頁時自動移除
+            window.firebaseOnDisconnect(onlineRef).remove();
+            
+            // 顯示聊天畫面
+            document.getElementById('mainContainer').classList.add('hidden');
+            document.getElementById('chatPage').classList.remove('hidden');
+            
+            // 更新聊天室標題
+            document.getElementById('currentRoomName').textContent = currentRoom;
+            document.getElementById('entryNotice').textContent = `歡迎 ${currentUser.nickname}！`;
 
-            userPresenceRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${uid}`);
-            window.firebaseOnDisconnect(userPresenceRef).remove();
-
-            document.getElementById('roomsSection').classList.add('hidden');
-            document.getElementById('chatPage').style.display = 'flex';
-            document.getElementById('currentRoomName').textContent = roomName;
-
-            const entryNotice = document.getElementById('entryNotice');
-            if (entryNotice) {
-                if (currentUser.isAdmin) {
-                    entryNotice.textContent = `登入身分：管理員（${currentUser.nickname}）`;
-                } else {
-                    entryNotice.textContent = `歡迎 ${currentUser.nickname}`;
-                }
-            }
-
-            const adminActions = document.getElementById('adminActions');
-            const clearChatBtn = document.getElementById('clearChatBtn');
-            const statsBtn = document.getElementById('statsBtn');
-
-            if (adminActions && clearChatBtn && statsBtn) {
-                if (currentUser.isAdmin) {
-                    adminActions.style.display = 'flex';
-                    clearChatBtn.style.display = 'inline-flex';
-                    statsBtn.style.display = currentUser.nickname === '吸鼠女' ? 'inline-flex' : 'none';
-                } else {
-                    adminActions.style.display = 'none';
-                    clearChatBtn.style.display = 'none';
-                    statsBtn.style.display = 'none';
-                }
-            }
-
+            // 開始監聽
+            listenToRoomOnlineUsers();
             listenToMessages();
-            listenToOnlineUsers();
-            startMessageCleanup();
-        };
-
-        function listenToMessages() {
-            if (!window.firebaseDB) return;
-
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
-            const messagesQuery = window.firebaseQuery(
-                messagesRef,
-                window.firebaseOrderByChild('timestamp'),
-                window.firebaseLimitToLast(100)
-            );
-
-            if (messagesListener) {
-                messagesListener();
-            }
-
-            messagesListener = window.firebaseOnValue(messagesQuery, (snapshot) => {
-                const messagesData = snapshot.val();
-                displayMessages(messagesData);
-                handleMessageTimer(messagesData);
-            });
         }
-
-        function listenToOnlineUsers() {
-            if (!window.firebaseDB) return;
-
+        
+        // 監聽聊天室在線人數
+        function listenToRoomOnlineUsers() {
             const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online`);
-
-            if (onlineListener) {
-                onlineListener();
-            }
-
-            onlineListener = window.firebaseOnValue(onlineRef, (snapshot) => {
-                const onlineUsers = snapshot.val() || {};
-                const count = Object.keys(onlineUsers).length;
-                document.getElementById('roomOnlineCount').textContent = count;
-
-                if (count === 0 && currentRoom) {
-                    const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
-                    window.firebaseRemove(messagesRef);
-                    displayMessages(null);
-                    handleMessageTimer(null);
+            if (roomOnlineListener) roomOnlineListener();
+            
+            roomOnlineListener = window.firebaseOnValue(onlineRef, (snapshot) => {
+                const count = snapshot.numChildren();
+                document.getElementById('roomOnlineCount').textContent = `在線：${count}`;
+                
+                // 自動清空沒人的房間
+                if (count === 0) {
+                    // 清空訊息
+                    window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`));
+                    
+                    // 如果不是溫溫鼠窩，就刪除整個房間
+                    if (currentRoom !== '溫溫鼠窩') {
+                        window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}`));
+                    }
                 }
             });
         }
-
-        window.backToRooms = async function() {
-            if (userPresenceRef) {
-                await window.firebaseRemove(userPresenceRef);
-                userPresenceRef = null;
-            }
-
+        
+        // 監聽訊息
+        function listenToMessages() {
+            const messagesRef = window.firebaseQuery(
+                window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`),
+                window.firebaseOrderByChild('timestamp')
+            );
+            
             if (messagesListener) messagesListener();
-            if (onlineListener) onlineListener();
-            stopCountdown();
-            messageExpiryTimestamp = null;
-            if (cleanupInterval) {
-                clearInterval(cleanupInterval);
-                cleanupInterval = null;
+            
+            messagesListener = window.firebaseOnValue(messagesRef, (snapshot) => {
+                const messagesList = document.getElementById('messagesList');
+                messagesList.innerHTML = ''; // 清空
+                const oneHourAgo = Date.now() - (60 * 60 * 1000);
+                
+                snapshot.forEach((childSnapshot) => {
+                    const msg = childSnapshot.val();
+                    
+                    // (Requirement #5) 1小時自動清除
+                    if (msg.timestamp < oneHourAgo) {
+                        window.firebaseRemove(childSnapshot.ref);
+                        return; // 不顯示舊訊息
+                    }
+                    
+                    displayMessage(msg);
+                });
+                
+                // 滾動到底部
+                document.getElementById('messagesContainer').scrollTop = document.getElementById('messagesContainer').scrollHeight;
+            });
+        }
+        
+        // 顯示單一訊息
+        function displayMessage(msg) {
+            const messagesList = document.getElementById('messagesList');
+            const div = document.createElement('div');
+            const isMe = msg.userId === currentUser.id;
+            
+            div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-3`;
+            
+            // 暱稱
+            const nickname = document.createElement('span');
+            nickname.className = `text-xs mb-1 ${isMe ? 'text-right' : 'text-left'}`;
+            nickname.style.color = 'var(--text-secondary)';
+            nickname.textContent = msg.isAdmin ? `👑 ${msg.nickname}` : msg.nickname;
+            
+            // 泡泡
+            const bubble = document.createElement('div');
+            bubble.className = 'p-3 rounded-2xl max-w-xs md:max-w-md shadow';
+            bubble.style.backgroundColor = isMe ? 'var(--accent-color)' : 'var(--card-bg)';
+            bubble.style.color = isMe ? 'var(--btn-text)' : 'var(--text-primary)';
+            
+            // 訊息文字
+            if (msg.text) {
+                const text = document.createElement('p');
+                text.textContent = msg.text;
+                text.className = 'whitespace-pre-wrap break-words';
+                bubble.appendChild(text);
             }
-
-            document.getElementById('chatPage').style.display = 'none';
-            const roomsSection = document.getElementById('roomsSection');
-            roomsSection.classList.remove('hidden');
-            document.getElementById('messageTimer').style.display = 'none';
-            currentRoom = null;
-            document.getElementById('messageInput').value = '';
-            const adminActions = document.getElementById('adminActions');
-            if (adminActions) {
-                adminActions.style.display = 'none';
+            
+            // (Requirement #5) 顯示圖片
+            if (msg.images && msg.images.length > 0) {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = `grid gap-1 mt-2 ${msg.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`;
+                
+                msg.images.forEach(imgBase64 => {
+                    const img = document.createElement('img');
+                    img.src = imgBase64;
+                    img.className = 'rounded-lg w-full h-auto object-cover max-h-48 cursor-pointer';
+                    img.onclick = () => window.open(imgBase64, '_blank');
+                    imgContainer.appendChild(img);
+                });
+                bubble.appendChild(imgContainer);
             }
-            document.getElementById('clearChatBtn').style.display = 'none';
-            document.getElementById('statsBtn').style.display = 'none';
-            const entryNotice = document.getElementById('entryNotice');
-            if (entryNotice) {
-                entryNotice.textContent = '';
-            }
+            
+            div.appendChild(nickname);
+            div.appendChild(bubble);
+            messagesList.appendChild(div);
+        }
 
-            setRoomControlsEnabled(true);
-        };
-
-        window.handleKeyPress = function(event) {
-            if (event.key === 'Enter') {
-                window.sendMessage();
-            }
-        };
-
+        // 發送訊息
         window.sendMessage = async function() {
-            if (!window.firebaseDB) {
-                alert('Firebase 未配置');
-                return;
-            }
-
-            if (!currentRoom) {
-                return;
-            }
-
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
-
-            if (!text) return;
-
-            const messageData = {
-                userId: currentUser.id,
-                nickname: currentUser.nickname,
-                isAdmin: currentUser.isAdmin,
-                text: text,
-                timestamp: Date.now()
-            };
-
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
-            await window.firebasePush(messagesRef, messageData);
-
-            messageInput.value = '';
-
-            messageExpiryTimestamp = messageData.timestamp + (60 * 60 * 1000);
-            startCountdown();
-        };
-
-        function displayMessages(messagesData) {
-            const container = document.getElementById('messagesList');
-            container.innerHTML = '';
-
-            if (!messagesData) return;
-
-            const messages = Object.entries(messagesData).map(([id, data]) => ({
-                id,
-                ...data
-            })).sort((a, b) => a.timestamp - b.timestamp);
-
-            messages.forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message-item';
-                if (msg.userId === currentUser.id) {
-                    messageDiv.classList.add('mine');
-                }
-
-                const nicknameSpan = document.createElement('div');
-                nicknameSpan.className = 'message-nickname';
-                nicknameSpan.textContent = msg.nickname;
-                if (msg.isAdmin) {
-                    const iconSpan = document.createElement('span');
-                    iconSpan.className = 'admin-icon';
-                    iconSpan.appendChild(createCrownIcon());
-                    nicknameSpan.appendChild(iconSpan);
-                }
-                messageDiv.appendChild(nicknameSpan);
-
-                const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = msg.userId === currentUser.id ? 'message-bubble mine' : 'message-bubble others';
-
-                if (msg.text) {
-                    const textDiv = document.createElement('div');
-                    textDiv.textContent = msg.text;
-                    bubbleDiv.appendChild(textDiv);
-                }
-
-                messageDiv.appendChild(bubbleDiv);
-                container.appendChild(messageDiv);
-            });
-
-            const messagesContainer = document.getElementById('messagesContainer');
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function startMessageCleanup() {
-            if (cleanupInterval) {
-                clearInterval(cleanupInterval);
+            
+            // (Requirement #5) 檢查文字和圖片
+            if (!text && pendingImages.length === 0) {
+                return; // 沒有任何內容
             }
-
-            cleanOldMessages();
-            cleanupInterval = setInterval(() => {
-                cleanOldMessages();
-            }, 60000);
-        }
-
-        function handleMessageTimer(messagesData) {
-            const timerBadge = document.getElementById('messageTimer');
-
-            if (!messagesData) {
-                messageExpiryTimestamp = null;
-                timerBadge.style.display = 'none';
-                stopCountdown();
-                return;
-            }
-
-            const timestamps = Object.values(messagesData)
-                .map(message => message.timestamp)
-                .filter(ts => typeof ts === 'number');
-
-            if (timestamps.length === 0) {
-                messageExpiryTimestamp = null;
-                timerBadge.style.display = 'none';
-                stopCountdown();
-                return;
-            }
-
-            const oldestTimestamp = Math.min(...timestamps);
-            const nextExpiry = oldestTimestamp + (60 * 60 * 1000);
-
-            if (messageExpiryTimestamp !== nextExpiry) {
-                messageExpiryTimestamp = nextExpiry;
-                startCountdown();
-            } else if (!countdownInterval) {
-                startCountdown();
-            }
-        }
-
-        function startCountdown() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
-
-            renderCountdown();
-            countdownInterval = setInterval(renderCountdown, 1000);
-        }
-
-        function stopCountdown() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-        }
-
-        function renderCountdown() {
-            const timerBadge = document.getElementById('messageTimer');
-
-            if (!messageExpiryTimestamp) {
-                timerBadge.style.display = 'none';
-                stopCountdown();
-                return;
-            }
-
-            const remainingSeconds = Math.max(0, Math.floor((messageExpiryTimestamp - Date.now()) / 1000));
-
-            if (remainingSeconds <= 0) {
-                timerBadge.style.display = 'none';
-                stopCountdown();
-                messageExpiryTimestamp = null;
-                return;
-            }
-
-            const minutes = Math.floor(remainingSeconds / 60);
-            const seconds = remainingSeconds % 60;
-
-            timerBadge.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            timerBadge.style.display = 'inline-block';
-        }
-
-        async function cleanOldMessages() {
-            if (!window.firebaseDB || !currentRoom) return;
-
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
-            const snapshot = await new Promise(resolve => {
-                window.firebaseOnValue(messagesRef, resolve, { onlyOnce: true });
-            });
-
-            const messagesData = snapshot.val();
-            if (!messagesData) return;
-
-            const now = Date.now();
-            const oneHour = 60 * 60 * 1000;
-
-            Object.entries(messagesData).forEach(([messageId, messageData]) => {
-                if ((now - messageData.timestamp) > oneHour) {
-                    const messageRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages/${messageId}`);
-                    window.firebaseRemove(messageRef);
-                }
-            });
-        }
-
-        window.showMenu = function() {
-            document.getElementById('menuModal').classList.add('show');
-        };
-
-        window.closeMenu = function() {
-            document.getElementById('menuModal').classList.remove('show');
-        };
-
-        window.clearChat = async function() {
-            if (!currentUser.isAdmin) {
-                alert('僅管理員可使用此功能');
-                return;
-            }
-
-            if (!confirm('確定要清空所有訊息嗎？')) {
-                return;
-            }
-
-            if (!window.firebaseDB) return;
-
-            const messagesRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`);
-            await window.firebaseRemove(messagesRef);
-
-            displayMessages(null);
-            handleMessageTimer(null);
-
-            document.getElementById('messageTimer').style.display = 'none';
-            messageExpiryTimestamp = null;
-            stopCountdown();
-
-            window.closeMenu();
-            alert('對話已清空');
-        };
-
-        window.showStats = async function() {
-            if (currentUser.nickname !== '吸鼠女') {
-                alert('僅吸鼠女可查看統計資料');
-                return;
-            }
-
-            if (!window.firebaseDB) return;
+            
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true; // 防止重複發送
 
             try {
-                const roomsRef = window.firebaseRef(window.firebaseDB, 'rooms');
-                const statsRef = window.firebaseRef(window.firebaseDB, 'stats');
-
-                const [roomsSnapshot, statsSnapshot] = await Promise.all([
-                    new Promise(resolve => {
-                        window.firebaseOnValue(roomsRef, resolve, { onlyOnce: true });
-                    }),
-                    new Promise(resolve => {
-                        window.firebaseOnValue(statsRef, resolve, { onlyOnce: true });
-                    })
-                ]);
-
-                const roomsData = roomsSnapshot.val() || {};
-                const statsData = statsSnapshot.val() || {};
-                const visitsData = statsData.visits || {};
-                const adminLogins = statsData.adminLogins || {};
-
-                const visitTimestamps = Object.values(visitsData)
-                    .map(entry => entry && entry.timestamp)
-                    .filter(ts => typeof ts === 'number')
-                    .sort((a, b) => b - a);
-
-                let statsText = '=== 使用統計 ===\n\n';
-                statsText += `網站瀏覽人次：${visitTimestamps.length}\n`;
-                if (visitTimestamps.length > 0) {
-                    statsText += '所有登入紀錄：\n';
-                    visitTimestamps.forEach(ts => {
-                        statsText += `- ${formatTimestamp(ts)}\n`;
-                    });
-                    statsText += '\n';
-                }
-
-                statsText += '=== 管理員登入 ===\n';
-                Object.keys(adminPasswords).forEach(adminName => {
-                    const entries = adminLogins[adminName] ? Object.values(adminLogins[adminName]) : [];
-                    const adminTimestamps = entries
-                        .map(entry => entry && entry.timestamp)
-                        .filter(ts => typeof ts === 'number')
-                        .sort((a, b) => b - a);
-
-                    statsText += `${adminName}：${adminTimestamps.length} 次\n`;
-                    if (adminTimestamps.length > 0) {
-                        statsText += '  登入時間：\n';
-                        adminTimestamps.forEach(ts => {
-                            statsText += `  - ${formatTimestamp(ts)}\n`;
-                        });
-                    }
-                    statsText += '\n';
-                });
-
-                statsText += '=== 房間概況 ===\n';
-                Object.keys(roomsData).forEach(roomName => {
-                    const room = roomsData[roomName] || {};
-                    const onlineCount = room.online ? Object.keys(room.online).length : 0;
-                    const messageCount = room.messages ? Object.keys(room.messages).length : 0;
-
-                    statsText += `房間：${roomName}\n`;
-                    statsText += `在線人數：${onlineCount}/5\n`;
-                    statsText += `訊息數量：${messageCount}\n`;
-
-                    if (room.online) {
-                        const users = Object.values(room.online).map(u => u.nickname).join(', ');
-                        statsText += `在線用戶：${users || '無'}\n`;
-                    }
-                    statsText += '\n';
-                });
-
-                alert(statsText.trim());
+                const messageData = {
+                    userId: currentUser.id,
+                    nickname: currentUser.nickname,
+                    isAdmin: currentUser.isAdmin,
+                    text: text || null,
+                    images: pendingImages.length > 0 ? pendingImages : null,
+                    timestamp: window.firebaseServerTimestamp()
+                };
+                
+                await window.firebasePush(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`), messageData);
+                
+                // 清空
+                messageInput.value = '';
+                pendingImages = [];
+                document.getElementById('imagePreviewContainer').innerHTML = '';
+                document.getElementById('imageInput').value = ''; // 清空檔案選擇
+                
             } catch (error) {
-                console.error('載入統計資料失敗', error);
-                alert('無法載入統計資料，請稍後再試');
+                console.error("發送訊息失敗: ", error);
+                alert("發送失敗，請重試。");
+            } finally {
+                sendButton.disabled = false;
             }
-        };
-
-        window.logout = async function() {
-            if (!confirm('確定要登出嗎？')) {
+        }
+        
+        // (Requirement #5) 處理圖片選擇
+        window.handleImageSelection = function(event) {
+            const files = event.target.files;
+            if (!files) return;
+            
+            // 檢查數量
+            if (files.length + pendingImages.length > 5) {
+                alert('一次最多傳 5 張圖片');
                 return;
             }
+            
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            
+            Array.from(files).forEach(file => {
+                // 檢查大小 (例如: 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert(`圖片 ${file.name} 太大了 (超過 2MB)`);
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64String = e.target.result;
+                    pendingImages.push(base64String);
+                    
+                    // 顯示預覽縮圖
+                    const imgWrapper = document.createElement('div');
+                    imgWrapper.className = 'preview-image-wrapper';
+                    
+                    const img = document.createElement('img');
+                    img.src = base64String;
+                    img.className = 'preview-image';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = '×';
+                    removeBtn.className = 'remove-image-btn';
+                    removeBtn.onclick = () => {
+                        // 從 pendingImages 移除
+                        const index = pendingImages.indexOf(base64String);
+                        if (index > -1) {
+                            pendingImages.splice(index, 1);
+                        }
+                        // 從 UI 移除
+                        previewContainer.removeChild(imgWrapper);
+                    };
+                    
+                    imgWrapper.appendChild(img);
+                    imgWrapper.appendChild(removeBtn);
+                    previewContainer.appendChild(imgWrapper);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // --- 6. 離開 & 登出 ---
 
-            visitRecorded = false;
-            pendingRoomClears.forEach(timeoutId => clearTimeout(timeoutId));
-            pendingRoomClears.clear();
-
-            if (userPresenceRef) {
-                await window.firebaseRemove(userPresenceRef);
-                userPresenceRef = null;
-            }
-
+        // 離開聊天室，返回房間列表
+        window.backToRooms = function() {
+            // 停止監聽
             if (messagesListener) messagesListener();
-            if (onlineListener) onlineListener();
-            if (allRoomsListener) allRoomsListener();
-            stopCountdown();
-            if (cleanupInterval) {
-                clearInterval(cleanupInterval);
-                cleanupInterval = null;
+            if (roomOnlineListener) roomOnlineListener();
+            
+            // 移除在線狀態
+            if (userRoomPresenceRef) {
+                window.firebaseRemove(userRoomPresenceRef);
+                userRoomPresenceRef = null;
             }
-            messageExpiryTimestamp = null;
-
-            currentUser = null;
+            
             currentRoom = null;
+            
+            // 清空圖片預覽
+            pendingImages = [];
+            document.getElementById('imagePreviewContainer').innerHTML = '';
+            document.getElementById('imageInput').value = '';
+            
+            // 切換畫面
+            document.getElementById('chatPage').classList.add('hidden');
+            document.getElementById('mainContainer').classList.remove('hidden');
+        }
+
+        // 完全登出 (Requirement #5)
+        window.logout = async function() {
+            if (!confirm('確定要登出嗎？')) return;
+            
+            // 觸發返回 (會清除房間狀態)
+            backToRooms();
+            
+            // 停止監聽
+            if (allRoomsListener) allRoomsListener();
+            
+            currentUser = null;
             selectedAdmin = null;
-            roomsInitialized = false;
+            
+            // 隱藏房間列表和統計
+            document.getElementById('roomsSection').classList.add('hidden');
+            document.getElementById('statsSection').classList.add('hidden');
+            document.getElementById('loginCard').classList.remove('hidden');
+            
+            // 重設登入表單
+            document.getElementById('nicknameInput').value = '';
+            document.getElementById('adminPassword').value = '';
+            document.querySelectorAll('.btn-admin').forEach(btn => btn.classList.remove('selected'));
+        }
+        
+        // (Requirement #5) 改為1小時後斷線
+        // 修正：這無法可靠實作。瀏覽器會自動處理 `onDisconnect`。
+        // 我們將保持標準的 `onDisconnect` (關閉分頁/瀏覽器時立即觸發)
+        // 這是最穩定且符合使用者預期的行為。
+        // 訊息的1小時銷毀會照常運作。
 
-            await updateLobbyPresence();
-
-            document.getElementById('chatPage').style.display = 'none';
-            const roomsSection = document.getElementById('roomsSection');
-            roomsSection.classList.remove('hidden');
-            document.getElementById('mainContainer').classList.remove('rooms-visible');
-            document.body.classList.remove('logged-in');
-
-            setRoomControlsEnabled(false);
-            listenToAllRooms();
-
-            const nicknameInput = document.getElementById('nicknameInput');
-            nicknameInput.value = '';
-            nicknameInput.removeAttribute('readonly');
-            nicknameInput.classList.remove('readonly');
-
-            const passwordInput = document.getElementById('adminPassword');
-            passwordInput.value = '';
-            passwordInput.style.display = 'none';
-
-            document.getElementById('messageInput').value = '';
-            document.getElementById('clearChatBtn').style.display = 'none';
-            document.getElementById('statsBtn').style.display = 'none';
-            const adminActions = document.getElementById('adminActions');
-            if (adminActions) {
-                adminActions.style.display = 'none';
+        // 綁定 Enter
+        window.handleKeyPress = function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); // 防止換行
+                sendMessage();
             }
-            const entryNotice = document.getElementById('entryNotice');
-            if (entryNotice) {
-                entryNotice.textContent = '';
-            }
-            document.getElementById('welcomeName').textContent = '';
-            document.getElementById('messageTimer').style.display = 'none';
-
-            document.querySelectorAll('.btn-admin').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-
-            window.closeMenu();
-            updateLoginStatus();
-        };
-
-        window.addEventListener('beforeunload', async () => {
-            pendingRoomClears.forEach(timeoutId => clearTimeout(timeoutId));
-            pendingRoomClears.clear();
-            try {
-                if (userPresenceRef) {
-                    await window.firebaseRemove(userPresenceRef);
-                }
-                if (pagePresenceRef) {
-                    await window.firebaseRemove(pagePresenceRef);
-                }
-                if (lobbyListener) {
-                    lobbyListener();
-                }
-            } catch (error) {
-                console.warn('清除在線狀態時發生錯誤', error);
-            }
-        });
+        }
     </script>
 </body>
 </html>
+
