@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>花枝鼠社群專用 - 臨時私密對話 v3.0.0</title>
+    <title>花枝鼠社群專用 - 臨時私密對話 v3.0.1</title>
     
     <!-- 圓圓胖胖的字體 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -214,18 +214,26 @@
             font-weight: 700;
         }
 
-        /* 聊天室畫面 (修復偏移) */
+        /* * =================================
+         * BUG 修正: 聊天室偏移 & 預設隱藏
+         * =================================
+         */
         #chatPage {
+            display: none; /* 預設隱藏 */
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%; /* 使用 100% 而不是 100vh 避免行動裝置瀏覽器問題 */
-            display: flex; /* 改為 flex */
             flex-direction: column;
             background-color: var(--bg-color);
             overflow: hidden; /* 確保不會有東西溢出 */
             transform: translateZ(0); /* 提升圖層 */
+        }
+        
+        /* 用來顯示聊天室的 class */
+        #chatPage.visible {
+            display: flex;
         }
         
         #messagesContainer {
@@ -277,13 +285,18 @@
             justify-content: center;
             line-height: 1;
         }
+
+        /* Helper class for hiding */
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
     <!-- 
       主容器: 
-      包含 登入畫面、統計(隱藏)、房間列表(隱藏)
+      包含 登入畫面、房間列表(隱藏)
     -->
     <div id="mainContainer" class="container space-y-5">
         
@@ -292,15 +305,16 @@
             <h1 class="text-4xl md:text-5xl">花枝鼠社群專用</h1>
             <h2 class="text-2xl md:text-3xl" style="color: var(--text-secondary);">臨時私密對話小工具</h2>
             
-            <!-- 大廳狀態 (Requirement #1) -->
+            <!-- 大廳狀態 -->
             <div id="lobbyIndicator" class="flex items-center justify-center gap-3 p-3 bg-opacity-20 rounded-full" style="background-color: var(--card-bg);">
                 <div id="lobbyLamp" class="lobby-lamp"></div>
                 <span id="lobbyStatusText" class="text-sm font-semibold">正在連接...</span>
             </div>
+            <!-- 上次離開時間 -->
             <div id="lastLeftTimeText" class="text-xs" style="color: var(--text-secondary);"></div>
         </div>
 
-        <!-- 2. 說明文字 (Requirement #1) -->
+        <!-- 2. 說明文字 (更新) -->
         <p class="description text-center text-lg leading-relaxed" style="color: var(--text-primary);">
             有時候想跟群友單獨說兩句<br>
             但是又不方便留Line怎麼辦？<br>
@@ -309,7 +323,7 @@
             不用換 Line 也能私聊一下的地方～
         </p>
 
-        <!-- 3. 登入卡片 (Requirement #2) -->
+        <!-- 3. 登入卡片 (大改版) -->
         <div id="loginCard" class="card space-y-5">
             <!-- 一般成員 -->
             <div class="login-section space-y-2">
@@ -320,9 +334,10 @@
             <!-- 管理員 -->
             <div class="admin-section space-y-3">
                 <label class="font-semibold text-lg text-center">管理員</label>
+                <!-- 4位管理員 -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <button onclick="selectAdmin(event, '吸鼠女')" class="btn btn-admin" data-admin="吸鼠女">吸鼠女</button>
-                    <button onclick="selectAdmin(event, '大白美妙')" class="btn btn-admin" data-admin="大白美妙">大白美妙</button>
+                    <button onclick="selectAdmin(event, '大白美妙')" class="btn-admin" data-admin="大白美妙">大白美妙</button>
                     <button onclick="selectAdmin(event, 'Jinx')" class="btn btn-admin" data-admin="Jinx">Jinx</button>
                     <button onclick="selectAdmin(event, '芒果')" class="btn btn-admin" data-admin="芒果">芒果</button>
                 </div>
@@ -337,45 +352,50 @@
             <button id="loginButton" class="btn btn-primary w-full text-lg">登入</button>
         </div>
 
-        <!-- 4. 吸鼠女統計區 (Requirement #3) -->
-        <div id="statsSection" class="hidden space-y-3">
-            <h3 class="text-xl font-bold text-center">即時統計資料</h3>
-            <div class="grid grid-cols-2 gap-3 text-sm">
-                <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
-                    <div>瀏覽總次數：</div>
-                    <div id="statsTotalVisits" class="text-2xl font-bold">0 次</div>
-                </div>
-                <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
-                    <div>歷史鼠窩數量：</div>
-                    <div id="statsTotalRooms" class="text-2xl font-bold">0 個</div>
-                </div>
-            </div>
-            <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
-                <div class="font-semibold mb-2">管理員登入次數：</div>
-                <div id="statsAdminLogins" class="space-y-1 text-sm">
-                    <div>吸鼠女: 0 次</div>
-                    <div>大白美妙: 0 次</div>
-                    <div>Jinx: 0 次</div>
-                    <div>芒果: 0 次</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 5. 房間列表 (登入後顯示) -->
+        <!-- 4. 房間列表 (登入後顯示) -->
         <div id="roomsSection" class="hidden space-y-4">
             <h2 id="welcomeHeader" class="text-2xl font-bold text-center"></h2>
             
-            <!-- 房間格線 (Requirement #6) -->
+            <!-- 5. 吸鼠女統計區 (移到這裡) -->
+            <div id="statsSection" class="hidden space-y-3">
+                <h3 class="text-xl font-bold text-center">即時統計資料</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
+                        <div>瀏覽總次數：</div>
+                        <div id="statsTotalVisits" class="text-2xl font-bold">0 次</div>
+                    </div>
+                    <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
+                        <div>歷史鼠窩數量：</div>
+                        <div id="statsTotalRooms" class="text-2xl font-bold">0 個</div>
+                    </div>
+                </div>
+                <div class="stat-item bg-black bg-opacity-20 p-3 rounded-lg">
+                    <div class="font-semibold mb-2">管理員登入次數：</div>
+                    <div id="statsAdminLogins" class="space-y-1 text-sm">
+                        <!-- JS 會填入這裡 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 房間格線 -->
             <div id="roomsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                <!-- 房間 1: 溫溫鼠窩 -->
+                <!-- 房間 1: 溫溫鼠窩 (結構修改) -->
                 <div class="room-item flex flex-col rounded-xl" data-room-id="溫溫鼠窩">
                     <div class="flex justify-between items-center w-full">
-                        <span class="text-xl font-bold">溫溫鼠窩</span>
+                        <span class="text-xl font-bold room-name">溫溫鼠窩</span>
                         <div class="room-lamp"></div>
                     </div>
-                    <div class="text-sm room-status-text" style="color: var(--text-green-lit);">鼠窩有 0 隻老鼠</div>
-                    <button class="btn btn-primary w-full mt-auto" onclick="enterRoom('溫溫鼠窩')">加入鼠窩</button>
+                    <!-- 狀態 1: 沒人 (創建) - 溫溫鼠窩沒有這個狀態 -->
+                    <div class="room-create w-full space-y-2 mt-auto hidden">
+                        <input type="text" class="input-field room-create-input" placeholder="輸入新鼠窩名稱...">
+                        <button class="btn btn-primary w-full" onclick="createRoom('溫溫鼠窩')">創建鼠窩</button>
+                    </div>
+                    <!-- 狀態 2: 有人 (加入) - 溫溫鼠窩永遠是這個狀態 -->
+                    <div class="room-join w-full mt-auto">
+                        <div class="text-sm room-status-text" style="color: var(--text-green-lit);">鼠窩有 0 隻老鼠</div>
+                        <button class="btn btn-primary w-full mt-2" onclick="enterRoom('溫溫鼠窩')">加入鼠窩</button>
+                    </div>
                 </div>
                 
                 <!-- 房間 2: 動態 -->
@@ -384,12 +404,10 @@
                         <span class="text-xl font-bold room-name">鼠窩沒鼠</span>
                         <div class="room-lamp"></div>
                     </div>
-                    <!-- 狀態 1: 沒人 (創建) -->
                     <div class="room-create w-full space-y-2 mt-auto">
                         <input type="text" class="input-field room-create-input" placeholder="輸入新鼠窩名稱...">
                         <button class="btn btn-primary w-full" onclick="createRoom('slot_1')">創建鼠窩</button>
                     </div>
-                    <!-- 狀態 2: 有人 (加入) -->
                     <div class="room-join w-full mt-auto hidden">
                         <div class="text-sm room-status-text" style="color: var(--text-green-lit);">鼠窩有 0 隻老鼠</div>
                         <button class="btn btn-primary w-full mt-2" onclick="enterRoom(this.dataset.roomName)">加入鼠窩</button>
@@ -432,14 +450,13 @@
         </div>
 
         <!-- 6. 版本號 -->
-        <p class="version-text text-center text-sm mt-4" style="color: var(--text-secondary);">2025/10/22 v3.0.0</p>
+        <p class="version-text text-center text-sm mt-4" style="color: var(--text-secondary);">v3.0.1</p>
     </div>
 
     <!-- 
       聊天室畫面 (預設隱藏)
-      (Requirement #4: 修復偏移)
     -->
-    <div id="chatPage" class="hidden">
+    <div id="chatPage"> <!-- 移除 .hidden class, 由 CSS 控制 -->
         
         <!-- 聊天室頂部 -->
         <div class="chat-header p-4 flex items-center justify-between shadow-lg" style="background-color: var(--card-bg); flex-shrink: 0;">
@@ -468,7 +485,7 @@
         </div>
         
         <!-- 
-          輸入區 (Requirement #5: 傳圖功能)
+          輸入區 (圖片上傳)
         -->
         <div class="chat-input-container p-3" style="background-color: var(--card-bg); flex-shrink: 0;">
             <!-- 圖片預覽 -->
@@ -513,15 +530,16 @@
         let allRoomsListener = null;
         let lobbyListener = null;
         let lastLobbyCount = 0;
-        let pendingImages = []; // (Requirement #5)
+        let pendingImages = []; // 待上傳圖片
 
-        // 管理員密碼 (注意: 儲存在前端不安全，僅為演示)
+        // 管理員密碼 (更新: 移除 采瑄)
         const adminPasswords = {
             '吸鼠女': '444',
             '大白美妙': 'totoro',
             'Jinx': 'jinx',
             '芒果': 'Ying'
         };
+        const allAdminNames = Object.keys(adminPasswords);
 
         // --- 頁面初始化 ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -544,7 +562,7 @@
             document.body.classList.add(randomTheme);
         }
 
-        // --- 1. 大廳狀態 (Requirement #1) ---
+        // --- 1. 大廳狀態 (Requirement: 大廳燈號, 上次離開) ---
         
         // 初始化大廳狀態 (進入網站)
         async function initializeLobbyPresence() {
@@ -552,9 +570,7 @@
             pagePresenceRef = window.firebaseRef(window.firebaseDB, `pageOnline/${lobbySessionId}`);
             
             try {
-                // 標記自己上線
                 await window.firebaseSet(pagePresenceRef, { joinTime: window.firebaseServerTimestamp() });
-                // 設定離線時自動移除
                 window.firebaseOnDisconnect(pagePresenceRef).remove();
             } catch (error) {
                 console.error("無法設定大廳狀態: ", error);
@@ -562,15 +578,13 @@
             
             // 監聽大廳總人數
             const lobbyRef = window.firebaseRef(window.firebaseDB, 'pageOnline');
-            if (lobbyListener) lobbyListener(); // 移除舊監聽
+            if (lobbyListener) lobbyListener(); 
             
             lobbyListener = window.firebaseOnValue(lobbyRef, (snapshot) => {
                 const count = snapshot.numChildren();
                 updateLobbyIndicator(count);
                 
-                // 偵測是否剛從有人變沒人
                 if (lastLobbyCount > 0 && count === 0) {
-                    // 記錄最後離開時間
                     window.firebaseSet(window.firebaseRef(window.firebaseDB, 'stats/lastLeftTime'), window.firebaseServerTimestamp());
                 }
                 lastLobbyCount = count;
@@ -608,7 +622,7 @@
                 const lastLeftTime = snapshot.val();
                 const diffMs = Date.now() - lastLeftTime;
                 
-                if (diffMs < 60000) { // 一分鐘內
+                if (diffMs < 60000) {
                     lastLeftText.textContent = '上一隻老鼠剛剛離開';
                     return;
                 }
@@ -624,12 +638,11 @@
             }
         }
 
-        // --- 2. 登入邏輯 (Requirement #2) ---
+        // --- 2. 登入邏輯 (Requirement: 首頁大改版) ---
         
         // 選擇管理員
         window.selectAdmin = function(event, adminName) {
             selectedAdmin = adminName;
-            // 更新按鈕樣式
             document.querySelectorAll('.btn-admin').forEach(btn => {
                 btn.classList.toggle('selected', btn.dataset.admin === adminName);
             });
@@ -644,7 +657,6 @@
             const password = passwordInput.value.trim();
 
             if (selectedAdmin) {
-                // 管理員登入
                 if (!password) {
                     alert('請輸入密碼');
                     return;
@@ -659,7 +671,6 @@
                     isAdmin: true
                 };
             } else if (nickname) {
-                // 一般成員登入
                 currentUser = {
                     id: 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9),
                     nickname: nickname,
@@ -673,39 +684,32 @@
             // 登入成功
             document.getElementById('loginCard').classList.add('hidden');
             document.getElementById('roomsSection').classList.remove('hidden');
-            document.getElementById('welcomeHeader').textContent = `歡迎，${currentUser.nickname}`;
+            document.getElementById('welcomeHeader').textContent = `登入身分：${currentUser.isAdmin ? '管理員' : '成員'}（${currentUser.nickname}）`;
             
-            // 紀錄統計
             await recordVisitStats();
             
-            // (Requirement #3) 顯示吸鼠女統計
+            // 顯示吸鼠女統計
             if (currentUser.nickname === '吸鼠女') {
                 document.getElementById('statsSection').classList.remove('hidden');
                 showAdminStats();
             }
             
-            // 開始監聽所有房間
             listenToAllRooms();
         }
 
-        // --- 3. 統計功能 (Requirement #3) ---
+        // --- 3. 統計功能 (Requirement: 吸鼠女統計) ---
 
-        // 紀錄登入/瀏覽
         async function recordVisitStats() {
             if (!window.firebaseDB) return;
-            
-            // 增加總瀏覽次數
             const visitsRef = window.firebaseRef(window.firebaseDB, 'stats/totalVisits');
             window.firebaseRunTransaction(visitsRef, (currentValue) => (currentValue || 0) + 1);
             
-            // 紀錄管理員登入
             if (currentUser.isAdmin) {
                 const adminLoginRef = window.firebaseRef(window.firebaseDB, `stats/adminLogins/${currentUser.nickname}`);
                 window.firebaseRunTransaction(adminLoginRef, (currentValue) => (currentValue || 0) + 1);
             }
         }
         
-        // 顯示管理員統計
         async function showAdminStats() {
             if (!window.firebaseDB) return;
             const statsRef = window.firebaseRef(window.firebaseDB, 'stats');
@@ -721,7 +725,7 @@
                 document.getElementById('statsTotalVisits').textContent = `${totalVisits} 次`;
                 document.getElementById('statsTotalRooms').textContent = `${totalRooms} 個`;
                 
-                const adminStatsHTML = Object.keys(adminPasswords)
+                const adminStatsHTML = allAdminNames
                     .map(adminName => {
                         const count = adminLogins[adminName] || 0;
                         return `<div>${adminName}: ${count} 次</div>`;
@@ -734,14 +738,13 @@
             }
         }
 
-        // --- 4. 房間列表邏輯 (Requirement #6) ---
+        // --- 4. 房間列表邏輯 (Requirement: 鼠窩狀態, 溫溫鼠窩Bug) ---
         
-        // 監聽所有房間
         function listenToAllRooms() {
             if (!window.firebaseDB) return;
             const roomsRef = window.firebaseRef(window.firebaseDB, 'rooms');
             
-            if (allRoomsListener) allRoomsListener(); // 移除舊監聽
+            if (allRoomsListener) allRoomsListener();
             
             allRoomsListener = window.firebaseOnValue(roomsRef, (snapshot) => {
                 const roomsData = snapshot.val() || {};
@@ -761,17 +764,15 @@
                     const roomElement = document.querySelector(`[data-room-id="${slotId}"]`);
                     
                     if (roomName) {
-                        // 這個欄位被佔用了
                         updateRoomUI(roomElement, roomName, roomsData[roomName]);
                     } else {
-                        // 這個欄位是空的
                         updateRoomUI(roomElement, null, null);
                     }
                 });
             });
         }
         
-        // 更新單一房間的 UI
+        // (修復: 溫溫鼠窩)
         function updateRoomUI(element, roomName, roomData) {
             const lamp = element.querySelector('.room-lamp');
             const roomNameEl = element.querySelector('.room-name');
@@ -782,39 +783,34 @@
             
             const onlineCount = roomData && roomData.online ? Object.keys(roomData.online).length : 0;
             
-            if (roomName && (onlineCount > 0 || roomName === '溫溫鼠窩')) {
-                // 狀態: 房間有人 (或是固定的溫溫鼠窩)
+            // 決定房間是否被 "佔用" (有名字且有人, 或是 溫溫鼠窩)
+            const isOccupied = roomName && (onlineCount > 0 || roomName === '溫溫鼠窩');
+            
+            if (isOccupied) {
+                // 狀態: 房間有人或 溫溫鼠窩
                 lamp.classList.add('on');
-                if (roomNameEl) roomNameEl.textContent = roomName; // 更新名稱
+                roomNameEl.textContent = roomName; // 更新名稱
                 createDiv.classList.add('hidden');
                 joinDiv.classList.remove('hidden');
                 statusText.textContent = `鼠窩有 ${onlineCount} 隻老鼠`;
-                joinButton.dataset.roomName = roomName;
-                
-                // (Requirement #4) 修復溫溫鼠窩按鈕
-                if (roomName === '溫溫鼠窩') {
-                    const btn = element.querySelector('.btn-primary');
-                    btn.disabled = false;
-                }
+                joinButton.dataset.roomName = roomName; // 確保按鈕知道要加入哪個房間
+                joinButton.disabled = false; // 確保按鈕可按
                 
             } else if (roomName && onlineCount === 0) {
                  // 狀態: 房間是動態的，但裡面沒人 (例如剛創建或人走光了)
-                 // 自動刪除這個空房間
                  window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${roomName}`));
                  // UI 會在下一次 onValue 自動更新回 "鼠窩沒鼠"
                  
             } else {
                 // 狀態: 房間是空的 (鼠窩沒鼠)
                 lamp.classList.remove('on');
-                if (roomNameEl) roomNameEl.textContent = '鼠窩沒鼠';
+                roomNameEl.textContent = '鼠窩沒鼠';
                 createDiv.classList.remove('hidden');
                 joinDiv.classList.add('hidden');
-                // 清空輸入框
                 createDiv.querySelector('input').value = '';
             }
         }
         
-        // 創建房間
         window.createRoom = function(slotId) {
             const element = document.querySelector(`[data-room-id="${slotId}"]`);
             const input = element.querySelector('input');
@@ -824,7 +820,7 @@
                 alert('請輸入鼠窩名稱');
                 return;
             }
-            if (roomName === '溫溫鼠窩') {
+            if (roomName === '溫溫鼠窩' || roomName.startsWith('slot_')) {
                 alert('這個名稱不可以用喔');
                 return;
             }
@@ -833,13 +829,11 @@
             const roomsCountRef = window.firebaseRef(window.firebaseDB, 'stats/totalRoomsCreated');
             window.firebaseRunTransaction(roomsCountRef, (currentValue) => (currentValue || 0) + 1);
             
-            // 進入房間
             enterRoom(roomName);
         }
 
-        // --- 5. 聊天室邏輯 (Requirement #4, #5) ---
+        // --- 5. 聊天室邏輯 (Requirement: 傳圖, 1小時銷毀) ---
 
-        // 進入房間
         window.enterRoom = async function(roomName) {
             currentRoom = roomName;
             
@@ -851,23 +845,19 @@
                 nickname: currentUser.nickname,
                 isAdmin: currentUser.isAdmin
             });
-            // 離線/關閉網頁時自動移除
             window.firebaseOnDisconnect(onlineRef).remove();
             
-            // 顯示聊天畫面
+            // (BUG 修正) 切換畫面
             document.getElementById('mainContainer').classList.add('hidden');
-            document.getElementById('chatPage').classList.remove('hidden');
+            document.getElementById('chatPage').classList.add('visible'); // 使用 .visible
             
-            // 更新聊天室標題
             document.getElementById('currentRoomName').textContent = currentRoom;
             document.getElementById('entryNotice').textContent = `歡迎 ${currentUser.nickname}！`;
 
-            // 開始監聽
             listenToRoomOnlineUsers();
             listenToMessages();
         }
         
-        // 監聽聊天室在線人數
         function listenToRoomOnlineUsers() {
             const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online`);
             if (roomOnlineListener) roomOnlineListener();
@@ -876,20 +866,17 @@
                 const count = snapshot.numChildren();
                 document.getElementById('roomOnlineCount').textContent = `在線：${count}`;
                 
-                // 自動清空沒人的房間
-                if (count === 0) {
-                    // 清空訊息
+                if (count === 0 && currentRoom !== '溫溫鼠窩') {
+                    // 自動刪除動態空房
+                    window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}`));
+                    // (此時 allRoomsListener 會觸發, UI 會自動更新)
+                } else if (count === 0 && currentRoom === '溫溫鼠窩') {
+                    // 只清空溫溫鼠窩的訊息
                     window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`));
-                    
-                    // 如果不是溫溫鼠窩，就刪除整個房間
-                    if (currentRoom !== '溫溫鼠窩') {
-                        window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}`));
-                    }
                 }
             });
         }
         
-        // 監聽訊息
         function listenToMessages() {
             const messagesRef = window.firebaseQuery(
                 window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`),
@@ -900,27 +887,24 @@
             
             messagesListener = window.firebaseOnValue(messagesRef, (snapshot) => {
                 const messagesList = document.getElementById('messagesList');
-                messagesList.innerHTML = ''; // 清空
+                messagesList.innerHTML = ''; 
                 const oneHourAgo = Date.now() - (60 * 60 * 1000);
                 
                 snapshot.forEach((childSnapshot) => {
                     const msg = childSnapshot.val();
                     
-                    // (Requirement #5) 1小時自動清除
+                    // (Requirement: 1小時自動清除)
                     if (msg.timestamp < oneHourAgo) {
                         window.firebaseRemove(childSnapshot.ref);
-                        return; // 不顯示舊訊息
+                        return; 
                     }
-                    
                     displayMessage(msg);
                 });
                 
-                // 滾動到底部
                 document.getElementById('messagesContainer').scrollTop = document.getElementById('messagesContainer').scrollHeight;
             });
         }
         
-        // 顯示單一訊息
         function displayMessage(msg) {
             const messagesList = document.getElementById('messagesList');
             const div = document.createElement('div');
@@ -928,19 +912,16 @@
             
             div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-3`;
             
-            // 暱稱
             const nickname = document.createElement('span');
             nickname.className = `text-xs mb-1 ${isMe ? 'text-right' : 'text-left'}`;
             nickname.style.color = 'var(--text-secondary)';
             nickname.textContent = msg.isAdmin ? `👑 ${msg.nickname}` : msg.nickname;
             
-            // 泡泡
             const bubble = document.createElement('div');
             bubble.className = 'p-3 rounded-2xl max-w-xs md:max-w-md shadow';
             bubble.style.backgroundColor = isMe ? 'var(--accent-color)' : 'var(--card-bg)';
             bubble.style.color = isMe ? 'var(--btn-text)' : 'var(--text-primary)';
             
-            // 訊息文字
             if (msg.text) {
                 const text = document.createElement('p');
                 text.textContent = msg.text;
@@ -948,7 +929,7 @@
                 bubble.appendChild(text);
             }
             
-            // (Requirement #5) 顯示圖片
+            // (Requirement: 顯示圖片)
             if (msg.images && msg.images.length > 0) {
                 const imgContainer = document.createElement('div');
                 imgContainer.className = `grid gap-1 mt-2 ${msg.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`;
@@ -968,18 +949,14 @@
             messagesList.appendChild(div);
         }
 
-        // 發送訊息
         window.sendMessage = async function() {
             const messageInput = document.getElementById('messageInput');
             const text = messageInput.value.trim();
             
-            // (Requirement #5) 檢查文字和圖片
-            if (!text && pendingImages.length === 0) {
-                return; // 沒有任何內容
-            }
+            if (!text && pendingImages.length === 0) return;
             
             const sendButton = document.getElementById('sendButton');
-            sendButton.disabled = true; // 防止重複發送
+            sendButton.disabled = true; 
 
             try {
                 const messageData = {
@@ -993,11 +970,10 @@
                 
                 await window.firebasePush(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`), messageData);
                 
-                // 清空
                 messageInput.value = '';
                 pendingImages = [];
                 document.getElementById('imagePreviewContainer').innerHTML = '';
-                document.getElementById('imageInput').value = ''; // 清空檔案選擇
+                document.getElementById('imageInput').value = ''; 
                 
             } catch (error) {
                 console.error("發送訊息失敗: ", error);
@@ -1007,12 +983,11 @@
             }
         }
         
-        // (Requirement #5) 處理圖片選擇
+        // (Requirement: 傳圖, 最多5張)
         window.handleImageSelection = function(event) {
             const files = event.target.files;
             if (!files) return;
             
-            // 檢查數量
             if (files.length + pendingImages.length > 5) {
                 alert('一次最多傳 5 張圖片');
                 return;
@@ -1021,8 +996,7 @@
             const previewContainer = document.getElementById('imagePreviewContainer');
             
             Array.from(files).forEach(file => {
-                // 檢查大小 (例如: 2MB)
-                if (file.size > 2 * 1024 * 1024) {
+                if (file.size > 2 * 1024 * 1024) { // 限制 2MB
                     alert(`圖片 ${file.name} 太大了 (超過 2MB)`);
                     return;
                 }
@@ -1032,7 +1006,6 @@
                     const base64String = e.target.result;
                     pendingImages.push(base64String);
                     
-                    // 顯示預覽縮圖
                     const imgWrapper = document.createElement('div');
                     imgWrapper.className = 'preview-image-wrapper';
                     
@@ -1044,12 +1017,8 @@
                     removeBtn.textContent = '×';
                     removeBtn.className = 'remove-image-btn';
                     removeBtn.onclick = () => {
-                        // 從 pendingImages 移除
                         const index = pendingImages.indexOf(base64String);
-                        if (index > -1) {
-                            pendingImages.splice(index, 1);
-                        }
-                        // 從 UI 移除
+                        if (index > -1) pendingImages.splice(index, 1);
                         previewContainer.removeChild(imgWrapper);
                     };
                     
@@ -1063,38 +1032,30 @@
         
         // --- 6. 離開 & 登出 ---
 
-        // 離開聊天室，返回房間列表
         window.backToRooms = function() {
-            // 停止監聽
             if (messagesListener) messagesListener();
             if (roomOnlineListener) roomOnlineListener();
             
-            // 移除在線狀態
             if (userRoomPresenceRef) {
                 window.firebaseRemove(userRoomPresenceRef);
                 userRoomPresenceRef = null;
             }
             
             currentRoom = null;
-            
-            // 清空圖片預覽
             pendingImages = [];
             document.getElementById('imagePreviewContainer').innerHTML = '';
             document.getElementById('imageInput').value = '';
             
-            // 切換畫面
-            document.getElementById('chatPage').classList.add('hidden');
+            // (BUG 修正) 切換畫面
+            document.getElementById('chatPage').classList.remove('visible'); // 使用 .visible
             document.getElementById('mainContainer').classList.remove('hidden');
         }
 
-        // 完全登出 (Requirement #5)
         window.logout = async function() {
             if (!confirm('確定要登出嗎？')) return;
             
-            // 觸發返回 (會清除房間狀態)
             backToRooms();
             
-            // 停止監聽
             if (allRoomsListener) allRoomsListener();
             
             currentUser = null;
@@ -1111,20 +1072,14 @@
             document.querySelectorAll('.btn-admin').forEach(btn => btn.classList.remove('selected'));
         }
         
-        // (Requirement #5) 改為1小時後斷線
-        // 修正：這無法可靠實作。瀏覽器會自動處理 `onDisconnect`。
-        // 我們將保持標準的 `onDisconnect` (關閉分頁/瀏覽器時立即觸發)
-        // 這是最穩定且符合使用者預期的行為。
-        // 訊息的1小時銷毀會照常運作。
-
-        // 綁定 Enter
         window.handleKeyPress = function(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault(); // 防止換行
+                event.preventDefault();
                 sendMessage();
             }
         }
     </script>
 </body>
 </html>
+
 
