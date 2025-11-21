@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>花枝鼠社群專用 - 臨時私密對話 v4.0.0</title>
+    <title>花枝鼠社群專用 - 臨時私密對話 v4.2.0</title>
     
     <!-- 字體 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -96,9 +96,7 @@
         .btn-primary { background-color: var(--accent-color); color: var(--btn-text); }
         .btn-primary:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
         .btn-danger { background-color: var(--btn-danger); color: var(--btn-text); }
-        .btn-download { background-color: #2980b9; color: white; }
-
-        /* 管理員按鈕樣式 */
+        
         .btn-admin { background-color: var(--input-border); color: var(--text-secondary); }
         .btn-admin:hover { background-color: var(--dot-off); color: var(--text-primary); }
         .btn-admin.selected { background-color: var(--accent-color); color: var(--btn-text); box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
@@ -106,9 +104,16 @@
         /* 燈號 */
         .lobby-lamp, .room-lamp { width: 12px; height: 12px; border-radius: 50%; background-color: var(--dot-off); transition: 0.3s; }
         .lobby-lamp.on, .room-lamp.on { background-color: var(--dot-on); box-shadow: 0 0 8px var(--dot-on); }
+        
+        /* 螢光字樣式 */
+        .glow-text {
+            color: #4ade80; /* green-400 */
+            text-shadow: 0 0 5px rgba(74, 222, 128, 0.6);
+            font-weight: 700;
+        }
+        
         .room-status-text { color: var(--text-green-lit); font-weight: 700; font-size: 0.9rem; }
 
-        /* 聊天室 */
         #chatPage {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             flex-direction: column; background-color: var(--bg-color); z-index: 50;
@@ -128,9 +133,10 @@
             <h1 class="text-4xl font-bold">花枝鼠社群專用</h1>
             <h2 class="text-2xl" style="color: var(--text-secondary);">臨時私密對話小工具</h2>
             
+            <!-- 大廳狀態 -->
             <div class="flex items-center justify-center gap-3 p-3 bg-opacity-20 rounded-full" style="background-color: var(--card-bg);">
                 <div id="lobbyLamp" class="lobby-lamp"></div>
-                <span id="lobbyStatusText" class="text-sm font-semibold">正在連接...</span>
+                <span id="lobbyStatusText" class="text-base font-bold transition-all duration-300">正在連接...</span>
             </div>
             <div id="lastLeftTimeText" class="text-xs" style="color: var(--text-secondary);"></div>
         </div>
@@ -148,7 +154,6 @@
 
             <div class="space-y-3">
                 <label class="font-semibold text-lg text-center block">管理員</label>
-                <!-- 管理員按鈕格線 (調整過的位置) -->
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="selectAdmin(event, '吸鼠女')" class="btn btn-admin" data-admin="吸鼠女">吸鼠女</button>
                     <button onclick="selectAdmin(event, '大白美妙')" class="btn btn-admin" data-admin="大白美妙">大白美妙</button>
@@ -170,7 +175,6 @@
         <div id="roomsSection" class="hidden space-y-4">
             <h2 id="welcomeHeader" class="text-2xl font-bold text-center"></h2>
             
-            <!-- 吸鼠女統計 -->
             <div id="statsSection" class="hidden space-y-3 bg-black bg-opacity-20 p-4 rounded-xl">
                 <h3 class="text-xl font-bold text-center">即時統計資料</h3>
                 <div class="grid grid-cols-2 gap-3 text-sm">
@@ -180,12 +184,10 @@
                 <div id="statsAdminLogins" class="text-sm space-y-1 mt-2 pt-2 border-t border-gray-600"></div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="roomsGrid">
-                <!-- 房間會由 JS 動態生成 -->
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="roomsGrid"></div>
         </div>
         
-        <p class="text-center text-sm mt-4" style="color: var(--text-secondary);">v4.0.0</p>
+        <p class="text-center text-sm mt-4" style="color: var(--text-secondary);">v4.2.0</p>
     </div>
 
     <!-- 聊天室 -->
@@ -199,7 +201,6 @@
                 <div id="roomOnlineCount" class="text-xs text-gray-400"></div>
             </div>
             <div class="flex gap-2" id="chatHeaderBtns">
-                <!-- 管理員按鈕會插在這裡 -->
                 <button class="p-2" onclick="logout()">
                      <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V5h10a1 1 0 100-2H3zm12.293 4.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 13H9a1 1 0 110-2h7.586l-1.293-1.293a1 1 0 010-1.414z"/></svg>
                 </button>
@@ -228,15 +229,13 @@
     </div>
 
     <script type="module">
-        // 變數
         let currentAuthUser = null;
         let currentUser = null;
         let currentRoom = null;
         let selectedAdmin = null;
-        let lobbySessionId = `lobby_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         let listeners = {}; 
         let pendingImages = [];
-        let currentMessages = []; // 為了下載功能
+        let currentMessages = [];
 
         const adminPasswords = {
             '吸鼠女': '444',
@@ -249,23 +248,36 @@
         document.addEventListener('DOMContentLoaded', () => {
             applyRandomTheme();
             
-            // 自動恢復登入狀態 (解決跳出APP斷線)
             const savedUser = localStorage.getItem('ratChatUser');
+            const savedRoom = localStorage.getItem('ratChatRoom');
+            
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
-                    // 恢復UI
                     showLobby();
-                } catch (e) { localStorage.removeItem('ratChatUser'); }
+                    if(savedRoom) enterRoom(savedRoom);
+                } catch (e) { localStorage.clear(); }
             }
 
-            // 初始化 Firebase
             window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
                 if (user) {
                     currentAuthUser = user;
-                    initLobby(user.uid);
+                    // 預設非管理員，登入後會更新
+                    initLobby(user.uid, false);
+                    
+                    const connectedRef = window.firebaseRef(window.firebaseDB, ".info/connected");
+                    window.firebaseOnValue(connectedRef, (snap) => {
+                        if (snap.val() === true && currentUser && currentRoom) {
+                            const myRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
+                            window.firebaseSet(myRef, { name: currentUser.nickname });
+                            window.firebaseOnDisconnect(myRef).remove();
+                        }
+                    });
                 } else {
-                    window.firebaseSignInAnonymously(window.firebaseAuth).catch(e => console.error(e));
+                    window.firebaseSignInAnonymously(window.firebaseAuth).catch(e => {
+                        console.error(e);
+                        document.getElementById('lobbyStatusText').textContent = "請至Firebase開啟匿名登入!";
+                    });
                 }
             });
 
@@ -277,30 +289,46 @@
             document.body.classList.add(themes[Math.floor(Math.random() * themes.length)]);
         }
 
-        // 大廳邏輯
-        async function initLobby(uid) {
+        async function initLobby(uid, isAdmin) {
             if (!window.firebaseDB) return;
+            
+            // 更新大廳在線狀態 (包含是否為管理員)
             const presenceRef = window.firebaseRef(window.firebaseDB, `pageOnline/${uid}`);
-            await window.firebaseSet(presenceRef, { t: Date.now() });
+            await window.firebaseSet(presenceRef, { t: Date.now(), isAdmin: isAdmin });
             window.firebaseOnDisconnect(presenceRef).remove();
 
-            const lobbyRef = window.firebaseRef(window.firebaseDB, 'pageOnline');
-            window.firebaseOnValue(lobbyRef, snap => {
-                const count = snap.numChildren();
+            // 監聽大廳人數與狀態
+            window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'pageOnline'), snap => {
+                const users = snap.val() || {};
+                const count = Object.keys(users).length;
+                let hasAdmin = false;
+                
+                // 檢查是否有管理員在線
+                Object.values(users).forEach(u => {
+                    if(u.isAdmin) hasAdmin = true;
+                });
+
                 const lamp = document.getElementById('lobbyLamp');
                 const text = document.getElementById('lobbyStatusText');
+                
                 if(count > 0) {
                     lamp.classList.add('on');
-                    text.textContent = `大廳有 ${count} 隻老鼠`;
+                    text.classList.add('glow-text'); // 發光
+                    
+                    if (hasAdmin) {
+                        text.textContent = `大廳有 ${count} 隻大老鼠`; // 管理員版本
+                    } else {
+                        text.textContent = `大廳有 ${count} 隻老鼠`;
+                    }
                 } else {
                     lamp.classList.remove('on');
+                    text.classList.remove('glow-text');
                     text.textContent = '大廳沒有老鼠';
                 }
             });
             
             // 上次離開時間
-            const lastRef = window.firebaseRef(window.firebaseDB, 'stats/lastLeftTime');
-            window.firebaseOnValue(lastRef, snap => {
+            window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'stats/lastLeftTime'), snap => {
                 if(!snap.exists()) return;
                 const diff = Date.now() - snap.val();
                 if(diff < 60000) document.getElementById('lastLeftTimeText').textContent = "上一隻老鼠剛剛離開";
@@ -319,7 +347,7 @@
         };
 
         async function login() {
-            if (!currentAuthUser) return alert("連線中，請稍候...");
+            if (!currentAuthUser) return alert("連線中... 請檢查Firebase是否開啟匿名登入");
             
             const nick = document.getElementById('nicknameInput').value.trim();
             const pass = document.getElementById('adminPassword').value.trim();
@@ -333,10 +361,12 @@
                 return alert('請輸入暱稱');
             }
 
-            // 儲存登入狀態
             localStorage.setItem('ratChatUser', JSON.stringify(currentUser));
             
-            // 紀錄統計
+            // 登入後更新大廳狀態 (讓大廳顯示大老鼠)
+            initLobby(currentAuthUser.uid, currentUser.isAdmin);
+
+            // 統計
             const visitRef = window.firebaseRef(window.firebaseDB, 'stats/totalVisits');
             window.firebaseRunTransaction(visitRef, (v) => (v || 0) + 1);
             if(currentUser.isAdmin) {
@@ -380,10 +410,8 @@
                 const grid = document.getElementById('roomsGrid');
                 grid.innerHTML = '';
 
-                // 溫溫鼠窩
                 renderRoomCard(grid, '溫溫鼠窩', data['溫溫鼠窩']);
 
-                // 3個動態房間
                 const dynRooms = Object.keys(data).filter(k => k !== '溫溫鼠窩');
                 for(let i=0; i<3; i++) {
                     const name = dynRooms[i];
@@ -396,7 +424,6 @@
         function renderRoomCard(container, name, data, isDynamic=false) {
             const count = data?.online ? Object.keys(data.online).length : 0;
             
-            // 如果是動態房間且沒人，刪除它
             if(isDynamic && count === 0) {
                 window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${name}`));
                 return;
@@ -441,7 +468,6 @@
             if(!name) return alert('請輸入名稱');
             if(name === '溫溫鼠窩') return alert('名稱重複');
             
-            // 統計
             const rRef = window.firebaseRef(window.firebaseDB, 'stats/totalRoomsCreated');
             window.firebaseRunTransaction(rRef, (v) => (v || 0) + 1);
             
@@ -450,39 +476,34 @@
 
         window.enterRoom = async (name) => {
             currentRoom = name;
+            localStorage.setItem('ratChatRoom', name);
+
             document.getElementById('mainContainer').classList.add('hidden');
             document.getElementById('chatPage').classList.add('visible');
             document.getElementById('currentRoomName').textContent = name;
             document.getElementById('entryNotice').textContent = `歡迎 ${currentUser.nickname}`;
 
-            // 管理員按鈕
             const headerBtns = document.getElementById('chatHeaderBtns');
-            // 清除舊的管理員按鈕
-            const oldAdminBtns = headerBtns.querySelectorAll('.admin-tool');
-            oldAdminBtns.forEach(b => b.remove());
+            headerBtns.querySelectorAll('.admin-tool').forEach(b => b.remove());
 
             if(currentUser.isAdmin) {
-                // 下載按鈕
                 const dlBtn = document.createElement('button');
                 dlBtn.className = 'p-2 admin-tool';
-                dlBtn.innerHTML = '📥'; // 下載圖示
+                dlBtn.innerHTML = '📥'; 
                 dlBtn.onclick = downloadLogs;
                 headerBtns.prepend(dlBtn);
 
-                // 清除按鈕
                 const clrBtn = document.createElement('button');
                 clrBtn.className = 'p-2 admin-tool text-red-400';
-                clrBtn.innerHTML = '🗑️'; // 垃圾桶
+                clrBtn.innerHTML = '🗑️'; 
                 clrBtn.onclick = clearChat;
                 headerBtns.prepend(clrBtn);
             }
 
-            // 在線狀態
             const myRef = window.firebaseRef(window.firebaseDB, `rooms/${name}/online/${currentUser.id}`);
             await window.firebaseSet(myRef, { name: currentUser.nickname });
             window.firebaseOnDisconnect(myRef).remove();
 
-            // 監聽人數
             const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${name}/online`);
             listeners.online = window.firebaseOnValue(onlineRef, snap => {
                 const count = snap.numChildren();
@@ -492,21 +513,20 @@
                 }
             });
 
-            // 監聽訊息
             const msgRef = window.firebaseQuery(window.firebaseRef(window.firebaseDB, `rooms/${name}/messages`), window.firebaseOrderByChild('timestamp'));
             listeners.msg = window.firebaseOnValue(msgRef, snap => {
                 const list = document.getElementById('messagesList');
                 list.innerHTML = '';
-                currentMessages = []; // 重置
+                currentMessages = []; 
                 const now = Date.now();
 
                 snap.forEach(s => {
                     const m = s.val();
-                    if(now - m.timestamp > 3600000) { // 1小時清除
+                    if(now - m.timestamp > 3600000) {
                         window.firebaseRemove(s.ref);
                         return;
                     }
-                    currentMessages.push(m); // 存入陣列供下載
+                    currentMessages.push(m);
                     renderMessage(list, m);
                 });
                 document.getElementById('messagesContainer').scrollTop = 99999;
@@ -571,22 +591,21 @@
         };
 
         window.backToRooms = () => {
-            // 移除監聽
             if(listeners.online) listeners.online();
             if(listeners.msg) listeners.msg();
             
-            // 移除自己在線
             const myRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
             window.firebaseRemove(myRef);
 
             document.getElementById('chatPage').classList.remove('visible');
             document.getElementById('mainContainer').classList.remove('hidden');
             currentRoom = null;
+            localStorage.removeItem('ratChatRoom');
         };
 
         window.logout = () => {
             if(!confirm('登出？')) return;
-            localStorage.removeItem('ratChatUser');
+            localStorage.clear();
             location.reload();
         };
 
