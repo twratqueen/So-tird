@@ -1,643 +1,662 @@
 <!DOCTYPE html>
+
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>花枝鼠社群專用 - 臨時私密對話 v4.2.0</title>
+
+```
+<!-- Open Graph 標籤 - 社群分享縮圖 -->
+<meta property="og:title" content="花枝鼠社群專用 - 臨時私密對話小工具">
+<meta property="og:description" content="有時候想跟群友單獨說兩句但是又不方便留Line怎麼辦？真的有人習慣好友名單保持整潔啊🥺 現在社群提供成員一個不用換 Line 也能私聊一下的地方～">
+<meta property="og:image" content="https://raw.githubusercontent.com/twratqueen/So-tird/main/123.JPG">
+<meta property="og:url" content="https://twratqueen.github.io/So-tird/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="花枝鼠社群">
+
+<!-- Twitter Card 標籤 -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="花枝鼠社群專用 - 臨時私密對話小工具">
+<meta name="twitter:description" content="有時候想跟群友單獨說兩句但是又不方便留Line怎麼辦？真的有人習慣好友名單保持整潔啊🥺">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/twratqueen/So-tird/main/123.JPG">
+
+<!-- 字體 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import { getDatabase, ref, push, onValue, remove, set, onDisconnect, query, orderByChild, limitToLast, runTransaction, serverTimestamp, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyA3Ml5IrxQAX1s9W03y_yRjU1xELR_kNF8",
+        authDomain: "rat50khz.firebaseapp.com",
+        databaseURL: "https://rat50khz-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "rat50khz",
+        storageBucket: "rat50khz.firebasestorage.app",
+        messagingSenderId: "259578799109",
+        appId: "1:259578799109:web:2faaf07c2a5ca202b0686c",
+        measurementId: "G-CRM8NDPK0G"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const database = getDatabase(app);
+
+    window.firebaseDB = database;
+    window.firebaseAuth = auth;
+    window.firebaseRef = ref;
+    window.firebasePush = push;
+    window.firebaseOnValue = onValue;
+    window.firebaseRemove = remove;
+    window.firebaseSet = set;
+    window.firebaseOnDisconnect = onDisconnect;
+    window.firebaseQuery = query;
+    window.firebaseOrderByChild = orderByChild;
+    window.firebaseLimitToLast = limitToLast;
+    window.firebaseRunTransaction = runTransaction;
+    window.firebaseServerTimestamp = serverTimestamp;
+    window.firebaseGet = get;
+    window.firebaseOnAuthStateChanged = onAuthStateChanged;
+    window.firebaseSignInAnonymously = signInAnonymously;
+</script>
+
+<style>
+    /* 莫蘭迪深色系 */
+    :root {
+        --bg-color: #3a3a3a;
+        --card-bg: #4a4a4a;
+        --text-primary: #e0e0e0;
+        --text-secondary: #b0b0b0;
+        --accent-color: #8a9a8a;
+        --accent-hover: #9aac9a;
+        --btn-text: #ffffff;
+        --input-bg: #2f2f2f;
+        --input-border: #5a5a5a;
+        --dot-off: #5a5a5a;
+        --dot-on: #4CAF50;
+        --text-green-lit: #66ff66;
+        --btn-danger: #c0392b;
+    }
     
-    <!-- 字體 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    .theme-1 { --bg-color: #2c3e50; --card-bg: #34495e; --text-primary: #ecf0f1; --text-secondary: #bdc3c7; --accent-color: #8e44ad; --accent-hover: #9b59b6; --input-bg: #2c3e50; --input-border: #4a637a; }
+    .theme-2 { --bg-color: #4B3A41; --card-bg: #5A4A51; --text-primary: #F7F1EA; --text-secondary: #D4C4B4; --accent-color: #A57B68; --accent-hover: #B88A79; --input-bg: #403036; --input-border: #6a5a61; }
+    .theme-3 { --bg-color: #3F4856; --card-bg: #4E5A65; --text-primary: #F4EFE9; --text-secondary: #C0C5C9; --accent-color: #5A8B9D; --accent-hover: #6AA0B3; --input-bg: #353D4A; --input-border: #5e6b7a; }
+    .theme-4 { --bg-color: #4A4F46; --card-bg: #595F55; --text-primary: #F6F1EB; --text-secondary: #C4C8C2; --accent-color: #7A8B7D; --accent-hover: #8A9B8D; --input-bg: #40453C; --input-border: #696F65; }
+    .theme-5 { --bg-color: #3D4D4F; --card-bg: #4C5C5E; --text-primary: #F3EDE6; --text-secondary: #BFC6C7; --accent-color: #6B7A8B; --accent-hover: #7B8A9B; --input-bg: #334345; --input-border: #5B6B6D; }
+
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+        font-weight: 500;
+        transition: background-color 0.5s;
+    }
+
+    .container { width: 100%; max-width: 640px; margin: 0 auto; }
+    .card { background-color: var(--card-bg); border-radius: 24px; padding: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
     
-    <script src="https://cdn.tailwindcss.com"></script>
+    .input-field {
+        background-color: var(--input-bg); border: 2px solid var(--input-border);
+        color: var(--text-primary); border-radius: 12px; padding: 12px 16px; font-size: 16px; width: 100%;
+    }
+    .input-field:focus { outline: none; border-color: var(--accent-color); }
+
+    .btn { border: none; border-radius: 12px; padding: 12px 20px; font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; transition: 0.3s; }
+    .btn-primary { background-color: var(--accent-color); color: var(--btn-text); }
+    .btn-primary:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
+    .btn-danger { background-color: var(--btn-danger); color: var(--btn-text); }
     
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getDatabase, ref, push, onValue, remove, set, onDisconnect, query, orderByChild, limitToLast, runTransaction, serverTimestamp, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyA3Ml5IrxQAX1s9W03y_yRjU1xELR_kNF8",
-            authDomain: "rat50khz.firebaseapp.com",
-            databaseURL: "https://rat50khz-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "rat50khz",
-            storageBucket: "rat50khz.firebasestorage.app",
-            messagingSenderId: "259578799109",
-            appId: "1:259578799109:web:2faaf07c2a5ca202b0686c",
-            measurementId: "G-CRM8NDPK0G"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const database = getDatabase(app);
-
-        window.firebaseDB = database;
-        window.firebaseAuth = auth;
-        window.firebaseRef = ref;
-        window.firebasePush = push;
-        window.firebaseOnValue = onValue;
-        window.firebaseRemove = remove;
-        window.firebaseSet = set;
-        window.firebaseOnDisconnect = onDisconnect;
-        window.firebaseQuery = query;
-        window.firebaseOrderByChild = orderByChild;
-        window.firebaseLimitToLast = limitToLast;
-        window.firebaseRunTransaction = runTransaction;
-        window.firebaseServerTimestamp = serverTimestamp;
-        window.firebaseGet = get;
-        window.firebaseOnAuthStateChanged = onAuthStateChanged;
-        window.firebaseSignInAnonymously = signInAnonymously;
-    </script>
+    .btn-admin { background-color: var(--input-border); color: var(--text-secondary); }
+    .btn-admin:hover { background-color: var(--dot-off); color: var(--text-primary); }
+    .btn-admin.selected { background-color: var(--accent-color); color: var(--btn-text); box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
     
-    <style>
-        /* 莫蘭迪深色系 */
-        :root {
-            --bg-color: #3a3a3a;
-            --card-bg: #4a4a4a;
-            --text-primary: #e0e0e0;
-            --text-secondary: #b0b0b0;
-            --accent-color: #8a9a8a;
-            --accent-hover: #9aac9a;
-            --btn-text: #ffffff;
-            --input-bg: #2f2f2f;
-            --input-border: #5a5a5a;
-            --dot-off: #5a5a5a;
-            --dot-on: #4CAF50;
-            --text-green-lit: #66ff66;
-            --btn-danger: #c0392b;
-        }
-        
-        .theme-1 { --bg-color: #2c3e50; --card-bg: #34495e; --text-primary: #ecf0f1; --text-secondary: #bdc3c7; --accent-color: #8e44ad; --accent-hover: #9b59b6; --input-bg: #2c3e50; --input-border: #4a637a; }
-        .theme-2 { --bg-color: #4B3A41; --card-bg: #5A4A51; --text-primary: #F7F1EA; --text-secondary: #D4C4B4; --accent-color: #A57B68; --accent-hover: #B88A79; --input-bg: #403036; --input-border: #6a5a61; }
-        .theme-3 { --bg-color: #3F4856; --card-bg: #4E5A65; --text-primary: #F4EFE9; --text-secondary: #C0C5C9; --accent-color: #5A8B9D; --accent-hover: #6AA0B3; --input-bg: #353D4A; --input-border: #5e6b7a; }
-        .theme-4 { --bg-color: #4A4F46; --card-bg: #595F55; --text-primary: #F6F1EB; --text-secondary: #C4C8C2; --accent-color: #7A8B7D; --accent-hover: #8A9B8D; --input-bg: #40453C; --input-border: #696F65; }
-        .theme-5 { --bg-color: #3D4D4F; --card-bg: #4C5C5E; --text-primary: #F3EDE6; --text-secondary: #BFC6C7; --accent-color: #6B7A8B; --accent-hover: #7B8A9B; --input-bg: #334345; --input-border: #5B6B6D; }
+    /* 燈號 */
+    .lobby-lamp, .room-lamp { width: 12px; height: 12px; border-radius: 50%; background-color: var(--dot-off); transition: 0.3s; }
+    .lobby-lamp.on, .room-lamp.on { background-color: var(--dot-on); box-shadow: 0 0 8px var(--dot-on); }
+    
+    /* 螢光字樣式 */
+    .glow-text {
+        color: #4ade80; /* green-400 */
+        text-shadow: 0 0 5px rgba(74, 222, 128, 0.6);
+        font-weight: 700;
+    }
+    
+    .room-status-text { color: var(--text-green-lit); font-weight: 700; font-size: 0.9rem; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
-            font-weight: 500;
-            transition: background-color 0.5s;
-        }
+    #chatPage {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        flex-direction: column; background-color: var(--bg-color); z-index: 50;
+    }
+    #chatPage.visible { display: flex; }
+    #messagesContainer { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    
+    .preview-image { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 2px solid var(--input-border); }
+    .hidden { display: none !important; }
+</style>
+```
 
-        .container { width: 100%; max-width: 640px; margin: 0 auto; }
-        .card { background-color: var(--card-bg); border-radius: 24px; padding: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
-        
-        .input-field {
-            background-color: var(--input-bg); border: 2px solid var(--input-border);
-            color: var(--text-primary); border-radius: 12px; padding: 12px 16px; font-size: 16px; width: 100%;
-        }
-        .input-field:focus { outline: none; border-color: var(--accent-color); }
-
-        .btn { border: none; border-radius: 12px; padding: 12px 20px; font-size: 16px; font-weight: 700; cursor: pointer; text-align: center; transition: 0.3s; }
-        .btn-primary { background-color: var(--accent-color); color: var(--btn-text); }
-        .btn-primary:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
-        .btn-danger { background-color: var(--btn-danger); color: var(--btn-text); }
-        
-        .btn-admin { background-color: var(--input-border); color: var(--text-secondary); }
-        .btn-admin:hover { background-color: var(--dot-off); color: var(--text-primary); }
-        .btn-admin.selected { background-color: var(--accent-color); color: var(--btn-text); box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
-        
-        /* 燈號 */
-        .lobby-lamp, .room-lamp { width: 12px; height: 12px; border-radius: 50%; background-color: var(--dot-off); transition: 0.3s; }
-        .lobby-lamp.on, .room-lamp.on { background-color: var(--dot-on); box-shadow: 0 0 8px var(--dot-on); }
-        
-        /* 螢光字樣式 */
-        .glow-text {
-            color: #4ade80; /* green-400 */
-            text-shadow: 0 0 5px rgba(74, 222, 128, 0.6);
-            font-weight: 700;
-        }
-        
-        .room-status-text { color: var(--text-green-lit); font-weight: 700; font-size: 0.9rem; }
-
-        #chatPage {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            flex-direction: column; background-color: var(--bg-color); z-index: 50;
-        }
-        #chatPage.visible { display: flex; }
-        #messagesContainer { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        
-        .preview-image { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 2px solid var(--input-border); }
-        .hidden { display: none !important; }
-    </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
-    <div id="mainContainer" class="container space-y-5">
-        <!-- 標題 -->
-        <div class="text-center space-y-3 pt-4">
-            <h1 class="text-4xl font-bold">花枝鼠社群專用</h1>
-            <h2 class="text-2xl" style="color: var(--text-secondary);">臨時私密對話小工具</h2>
-            
-            <!-- 大廳狀態 -->
-            <div class="flex items-center justify-center gap-3 p-3 bg-opacity-20 rounded-full" style="background-color: var(--card-bg);">
-                <div id="lobbyLamp" class="lobby-lamp"></div>
-                <span id="lobbyStatusText" class="text-base font-bold transition-all duration-300">正在連接...</span>
-            </div>
-            <div id="lastLeftTimeText" class="text-xs" style="color: var(--text-secondary);"></div>
-        </div>
-
-        <p class="text-center text-lg leading-relaxed" style="color: var(--text-primary);">
-            有時候想跟群友單獨說兩句<br>但是又不方便留Line怎麼辦？<br>真的有人習慣好友名單保持整潔啊🥺<br>現在社群提供成員一個<br>不用換 Line 也能私聊一下的地方～
-        </p>
-
-        <!-- 登入卡片 -->
-        <div id="loginCard" class="card space-y-5">
-            <div class="space-y-2">
-                <label class="font-semibold text-lg">一般成員登入</label>
-                <input type="text" id="nicknameInput" class="input-field" placeholder="輸入你的暱稱">
-            </div>
-
-            <div class="space-y-3">
-                <label class="font-semibold text-lg text-center block">管理員</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="selectAdmin(event, '吸鼠女')" class="btn btn-admin" data-admin="吸鼠女">吸鼠女</button>
-                    <button onclick="selectAdmin(event, '大白美妙')" class="btn btn-admin" data-admin="大白美妙">大白美妙</button>
-                    <button onclick="selectAdmin(event, 'Jinx')" class="btn btn-admin" data-admin="Jinx">Jinx</button>
-                    <button onclick="selectAdmin(event, '采瑄')" class="btn btn-admin" data-admin="采瑄">采瑄</button>
-                    <button onclick="selectAdmin(event, '芒果')" class="btn btn-admin col-span-2" data-admin="芒果">芒果</button>
-                </div>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-4 items-center">
-                <input type="password" id="adminPassword" class="input-field" placeholder="輸入密碼">
-                <span class="text-xs text-center md:text-left" style="color: var(--text-secondary);">(一般成員無需輸入密碼)</span>
-            </div>
-            
-            <button id="loginButton" class="btn btn-primary w-full text-lg">登入</button>
-        </div>
-
-        <!-- 房間列表 -->
-        <div id="roomsSection" class="hidden space-y-4">
-            <h2 id="welcomeHeader" class="text-2xl font-bold text-center"></h2>
-            
-            <div id="statsSection" class="hidden space-y-3 bg-black bg-opacity-20 p-4 rounded-xl">
-                <h3 class="text-xl font-bold text-center">即時統計資料</h3>
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                    <div>瀏覽總次數：<span id="statsTotalVisits" class="font-bold">0</span></div>
-                    <div>歷史鼠窩數：<span id="statsTotalRooms" class="font-bold">0</span></div>
-                </div>
-                <div id="statsAdminLogins" class="text-sm space-y-1 mt-2 pt-2 border-t border-gray-600"></div>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="roomsGrid"></div>
-        </div>
+```
+<div id="mainContainer" class="container space-y-5">
+    <!-- 標題 -->
+    <div class="text-center space-y-3 pt-4">
+        <h1 class="text-4xl font-bold">花枝鼠社群專用</h1>
+        <h2 class="text-2xl" style="color: var(--text-secondary);">臨時私密對話小工具</h2>
         
-        <p class="text-center text-sm mt-4" style="color: var(--text-secondary);">v4.2.0</p>
+        <!-- 大廳狀態 -->
+        <div class="flex items-center justify-center gap-3 p-3 bg-opacity-20 rounded-full" style="background-color: var(--card-bg);">
+            <div id="lobbyLamp" class="lobby-lamp"></div>
+            <span id="lobbyStatusText" class="text-base font-bold transition-all duration-300">正在連接...</span>
+        </div>
+        <div id="lastLeftTimeText" class="text-xs" style="color: var(--text-secondary);"></div>
     </div>
 
-    <!-- 聊天室 -->
-    <div id="chatPage">
-        <div class="p-4 flex items-center justify-between shadow-lg" style="background-color: var(--card-bg);">
-            <button class="p-2" onclick="backToRooms()">
-                <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+    <p class="text-center text-lg leading-relaxed" style="color: var(--text-primary);">
+        有時候想跟群友單獨說兩句<br>但是又不方便留Line怎麼辦？<br>真的有人習慣好友名單保持整潔啊🥺<br>現在社群提供成員一個<br>不用換 Line 也能私聊一下的地方～
+    </p>
+
+    <!-- 登入卡片 -->
+    <div id="loginCard" class="card space-y-5">
+        <div class="space-y-2">
+            <label class="font-semibold text-lg">一般成員登入</label>
+            <input type="text" id="nicknameInput" class="input-field" placeholder="輸入你的暱稱">
+        </div>
+
+        <div class="space-y-3">
+            <label class="font-semibold text-lg text-center block">管理員</label>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="selectAdmin(event, '吸鼠女')" class="btn btn-admin" data-admin="吸鼠女">吸鼠女</button>
+                <button onclick="selectAdmin(event, '大白美妙')" class="btn btn-admin" data-admin="大白美妙">大白美妙</button>
+                <button onclick="selectAdmin(event, 'Jinx')" class="btn btn-admin" data-admin="Jinx">Jinx</button>
+                <button onclick="selectAdmin(event, '采瑄')" class="btn btn-admin" data-admin="采瑄">采瑄</button>
+                <button onclick="selectAdmin(event, '芒果')" class="btn btn-admin col-span-2" data-admin="芒果">芒果</button>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4 items-center">
+            <input type="password" id="adminPassword" class="input-field" placeholder="輸入密碼">
+            <span class="text-xs text-center md:text-left" style="color: var(--text-secondary);">(一般成員無需輸入密碼)</span>
+        </div>
+        
+        <button id="loginButton" class="btn btn-primary w-full text-lg">登入</button>
+    </div>
+
+    <!-- 房間列表 -->
+    <div id="roomsSection" class="hidden space-y-4">
+        <h2 id="welcomeHeader" class="text-2xl font-bold text-center"></h2>
+        
+        <div id="statsSection" class="hidden space-y-3 bg-black bg-opacity-20 p-4 rounded-xl">
+            <h3 class="text-xl font-bold text-center">即時統計資料</h3>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>瀏覽總次數：<span id="statsTotalVisits" class="font-bold">0</span></div>
+                <div>歷史鼠窩數：<span id="statsTotalRooms" class="font-bold">0</span></div>
+            </div>
+            <div id="statsAdminLogins" class="text-sm space-y-1 mt-2 pt-2 border-t border-gray-600"></div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="roomsGrid"></div>
+    </div>
+    
+    <p class="text-center text-sm mt-4" style="color: var(--text-secondary);">v4.2.0</p>
+</div>
+
+<!-- 聊天室 -->
+<div id="chatPage">
+    <div class="p-4 flex items-center justify-between shadow-lg" style="background-color: var(--card-bg);">
+        <button class="p-2" onclick="backToRooms()">
+            <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+        </button>
+        <div class="text-center">
+            <div id="currentRoomName" class="text-lg font-bold"></div>
+            <div id="roomOnlineCount" class="text-xs text-gray-400"></div>
+        </div>
+        <div class="flex gap-2" id="chatHeaderBtns">
+            <button class="p-2" onclick="logout()">
+                 <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V5h10a1 1 0 100-2H3zm12.293 4.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 13H9a1 1 0 110-2h7.586l-1.293-1.293a1 1 0 010-1.414z"/></svg>
             </button>
-            <div class="text-center">
-                <div id="currentRoomName" class="text-lg font-bold"></div>
-                <div id="roomOnlineCount" class="text-xs text-gray-400"></div>
-            </div>
-            <div class="flex gap-2" id="chatHeaderBtns">
-                <button class="p-2" onclick="logout()">
-                     <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V5h10a1 1 0 100-2H3zm12.293 4.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 13H9a1 1 0 110-2h7.586l-1.293-1.293a1 1 0 010-1.414z"/></svg>
-                </button>
-            </div>
-        </div>
-
-        <div id="messagesContainer" class="p-4 space-y-4">
-            <div class="notice-box p-4 rounded-lg text-sm" style="background-color: var(--card-bg);">
-                <p id="entryNotice" class="font-bold mb-2"></p>
-                <p>訊息會在 1 小時後自動清除。</p>
-            </div>
-            <div id="messagesList" class="space-y-4"></div>
-        </div>
-        
-        <div class="p-3" style="background-color: var(--card-bg);">
-            <div id="imagePreviewContainer" class="flex gap-2 mb-2 overflow-x-auto"></div>
-            <div class="flex items-center gap-2">
-                <input type="file" id="imageInput" accept="image/*" multiple class="hidden" onchange="handleImageSelection(event)">
-                <button class="p-2" onclick="document.getElementById('imageInput').click()">
-                    <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10zm-9-1a1 1 0 100 2 1 1 0 000-2zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z"/></svg>
-                </button>
-                <input type="text" id="messageInput" class="input-field flex-1" placeholder="輸入訊息..." onkeypress="handleKeyPress(event)">
-                <button id="sendButton" class="btn btn-primary" onclick="sendMessage()">發送</button>
-            </div>
         </div>
     </div>
 
-    <script type="module">
-        let currentAuthUser = null;
-        let currentUser = null;
-        let currentRoom = null;
-        let selectedAdmin = null;
-        let listeners = {}; 
-        let pendingImages = [];
-        let currentMessages = [];
+    <div id="messagesContainer" class="p-4 space-y-4">
+        <div class="notice-box p-4 rounded-lg text-sm" style="background-color: var(--card-bg);">
+            <p id="entryNotice" class="font-bold mb-2"></p>
+            <p>訊息會在 1 小時後自動清除。</p>
+        </div>
+        <div id="messagesList" class="space-y-4"></div>
+    </div>
+    
+    <div class="p-3" style="background-color: var(--card-bg);">
+        <div id="imagePreviewContainer" class="flex gap-2 mb-2 overflow-x-auto"></div>
+        <div class="flex items-center gap-2">
+            <input type="file" id="imageInput" accept="image/*" multiple class="hidden" onchange="handleImageSelection(event)">
+            <button class="p-2" onclick="document.getElementById('imageInput').click()">
+                <svg class="w-6 h-6" fill="var(--text-primary)" viewBox="0 0 20 20"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4V5h12v10zm-9-1a1 1 0 100 2 1 1 0 000-2zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z"/></svg>
+            </button>
+            <input type="text" id="messageInput" class="input-field flex-1" placeholder="輸入訊息..." onkeypress="handleKeyPress(event)">
+            <button id="sendButton" class="btn btn-primary" onclick="sendMessage()">發送</button>
+        </div>
+    </div>
+</div>
 
-        const adminPasswords = {
-            '吸鼠女': '444',
-            '大白美妙': 'totoro',
-            'Jinx': 'jinx',
-            '芒果': 'Ying',
-            '采瑄': '151'
-        };
+<script type="module">
+    let currentAuthUser = null;
+    let currentUser = null;
+    let currentRoom = null;
+    let selectedAdmin = null;
+    let listeners = {}; 
+    let pendingImages = [];
+    let currentMessages = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
-            applyRandomTheme();
-            
-            const savedUser = localStorage.getItem('ratChatUser');
-            const savedRoom = localStorage.getItem('ratChatRoom');
-            
-            if (savedUser) {
-                try {
-                    currentUser = JSON.parse(savedUser);
-                    showLobby();
-                    if(savedRoom) enterRoom(savedRoom);
-                } catch (e) { localStorage.clear(); }
+    const adminPasswords = {
+        '吸鼠女': '444',
+        '大白美妙': 'totoro',
+        'Jinx': 'jinx',
+        '芒果': 'Ying',
+        '采瑄': '151'
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        applyRandomTheme();
+        
+        const savedUser = localStorage.getItem('ratChatUser');
+        const savedRoom = localStorage.getItem('ratChatRoom');
+        
+        if (savedUser) {
+            try {
+                currentUser = JSON.parse(savedUser);
+                showLobby();
+                if(savedRoom) enterRoom(savedRoom);
+            } catch (e) { localStorage.clear(); }
+        }
+
+        window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+            if (user) {
+                currentAuthUser = user;
+                // 預設非管理員,登入後會更新
+                initLobby(user.uid, false);
+                
+                const connectedRef = window.firebaseRef(window.firebaseDB, ".info/connected");
+                window.firebaseOnValue(connectedRef, (snap) => {
+                    if (snap.val() === true && currentUser && currentRoom) {
+                        const myRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
+                        window.firebaseSet(myRef, { name: currentUser.nickname });
+                        window.firebaseOnDisconnect(myRef).remove();
+                    }
+                });
+            } else {
+                window.firebaseSignInAnonymously(window.firebaseAuth).catch(e => {
+                    console.error(e);
+                    document.getElementById('lobbyStatusText').textContent = "請至Firebase開啟匿名登入!";
+                });
             }
-
-            window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
-                if (user) {
-                    currentAuthUser = user;
-                    // 預設非管理員，登入後會更新
-                    initLobby(user.uid, false);
-                    
-                    const connectedRef = window.firebaseRef(window.firebaseDB, ".info/connected");
-                    window.firebaseOnValue(connectedRef, (snap) => {
-                        if (snap.val() === true && currentUser && currentRoom) {
-                            const myRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
-                            window.firebaseSet(myRef, { name: currentUser.nickname });
-                            window.firebaseOnDisconnect(myRef).remove();
-                        }
-                    });
-                } else {
-                    window.firebaseSignInAnonymously(window.firebaseAuth).catch(e => {
-                        console.error(e);
-                        document.getElementById('lobbyStatusText').textContent = "請至Firebase開啟匿名登入!";
-                    });
-                }
-            });
-
-            document.getElementById('loginButton').addEventListener('click', login);
         });
 
-        function applyRandomTheme() {
-            const themes = ['theme-1', 'theme-2', 'theme-3', 'theme-4', 'theme-5'];
-            document.body.classList.add(themes[Math.floor(Math.random() * themes.length)]);
-        }
+        document.getElementById('loginButton').addEventListener('click', login);
+    });
 
-        async function initLobby(uid, isAdmin) {
-            if (!window.firebaseDB) return;
+    function applyRandomTheme() {
+        const themes = ['theme-1', 'theme-2', 'theme-3', 'theme-4', 'theme-5'];
+        document.body.classList.add(themes[Math.floor(Math.random() * themes.length)]);
+    }
+
+    async function initLobby(uid, isAdmin) {
+        if (!window.firebaseDB) return;
+        
+        // 更新大廳在線狀態 (包含是否為管理員)
+        const presenceRef = window.firebaseRef(window.firebaseDB, `pageOnline/${uid}`);
+        await window.firebaseSet(presenceRef, { t: Date.now(), isAdmin: isAdmin });
+        window.firebaseOnDisconnect(presenceRef).remove();
+
+        // 監聽大廳人數與狀態
+        window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'pageOnline'), snap => {
+            const users = snap.val() || {};
+            const count = Object.keys(users).length;
+            let hasAdmin = false;
             
-            // 更新大廳在線狀態 (包含是否為管理員)
-            const presenceRef = window.firebaseRef(window.firebaseDB, `pageOnline/${uid}`);
-            await window.firebaseSet(presenceRef, { t: Date.now(), isAdmin: isAdmin });
-            window.firebaseOnDisconnect(presenceRef).remove();
+            // 檢查是否有管理員在線
+            Object.values(users).forEach(u => {
+                if(u.isAdmin) hasAdmin = true;
+            });
 
-            // 監聽大廳人數與狀態
-            window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'pageOnline'), snap => {
-                const users = snap.val() || {};
-                const count = Object.keys(users).length;
-                let hasAdmin = false;
+            const lamp = document.getElementById('lobbyLamp');
+            const text = document.getElementById('lobbyStatusText');
+            
+            if(count > 0) {
+                lamp.classList.add('on');
+                text.classList.add('glow-text'); // 發光
                 
-                // 檢查是否有管理員在線
-                Object.values(users).forEach(u => {
-                    if(u.isAdmin) hasAdmin = true;
-                });
-
-                const lamp = document.getElementById('lobbyLamp');
-                const text = document.getElementById('lobbyStatusText');
-                
-                if(count > 0) {
-                    lamp.classList.add('on');
-                    text.classList.add('glow-text'); // 發光
-                    
-                    if (hasAdmin) {
-                        text.textContent = `大廳有 ${count} 隻大老鼠`; // 管理員版本
-                    } else {
-                        text.textContent = `大廳有 ${count} 隻老鼠`;
-                    }
+                if (hasAdmin) {
+                    text.textContent = `大廳有 ${count} 隻大老鼠`; // 管理員版本
                 } else {
-                    lamp.classList.remove('on');
-                    text.classList.remove('glow-text');
-                    text.textContent = '大廳沒有老鼠';
+                    text.textContent = `大廳有 ${count} 隻老鼠`;
                 }
-            });
-            
-            // 上次離開時間
-            window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'stats/lastLeftTime'), snap => {
-                if(!snap.exists()) return;
-                const diff = Date.now() - snap.val();
-                if(diff < 60000) document.getElementById('lastLeftTimeText').textContent = "上一隻老鼠剛剛離開";
-                else {
-                    const hrs = Math.floor(diff / 3600000);
-                    document.getElementById('lastLeftTimeText').textContent = `上一隻老鼠在 ${hrs} 小時前離開`;
-                }
-            });
-        }
-
-        window.selectAdmin = (e, name) => {
-            selectedAdmin = name;
-            document.querySelectorAll('.btn-admin').forEach(b => b.classList.remove('selected'));
-            e.target.classList.add('selected');
-            document.getElementById('adminPassword').focus();
-        };
-
-        async function login() {
-            if (!currentAuthUser) return alert("連線中... 請檢查Firebase是否開啟匿名登入");
-            
-            const nick = document.getElementById('nicknameInput').value.trim();
-            const pass = document.getElementById('adminPassword').value.trim();
-
-            if (selectedAdmin) {
-                if (pass !== adminPasswords[selectedAdmin]) return alert('密碼錯誤');
-                currentUser = { id: currentAuthUser.uid, nickname: selectedAdmin, isAdmin: true };
-            } else if (nick) {
-                currentUser = { id: currentAuthUser.uid, nickname: nick, isAdmin: false };
             } else {
-                return alert('請輸入暱稱');
+                lamp.classList.remove('on');
+                text.classList.remove('glow-text');
+                text.textContent = '大廳沒有老鼠';
             }
-
-            localStorage.setItem('ratChatUser', JSON.stringify(currentUser));
-            
-            // 登入後更新大廳狀態 (讓大廳顯示大老鼠)
-            initLobby(currentAuthUser.uid, currentUser.isAdmin);
-
-            // 統計
-            const visitRef = window.firebaseRef(window.firebaseDB, 'stats/totalVisits');
-            window.firebaseRunTransaction(visitRef, (v) => (v || 0) + 1);
-            if(currentUser.isAdmin) {
-                const admRef = window.firebaseRef(window.firebaseDB, `stats/adminLogins/${currentUser.nickname}`);
-                window.firebaseRunTransaction(admRef, (v) => (v || 0) + 1);
+        });
+        
+        // 上次離開時間
+        window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'stats/lastLeftTime'), snap => {
+            if(!snap.exists()) return;
+            const diff = Date.now() - snap.val();
+            if(diff < 60000) document.getElementById('lastLeftTimeText').textContent = "上一隻老鼠剛剛離開";
+            else {
+                const hrs = Math.floor(diff / 3600000);
+                document.getElementById('lastLeftTimeText').textContent = `上一隻老鼠在 ${hrs} 小時前離開`;
             }
+        });
+    }
 
-            showLobby();
+    window.selectAdmin = (e, name) => {
+        selectedAdmin = name;
+        document.querySelectorAll('.btn-admin').forEach(b => b.classList.remove('selected'));
+        e.target.classList.add('selected');
+        document.getElementById('adminPassword').focus();
+    };
+
+    async function login() {
+        if (!currentAuthUser) return alert("連線中... 請檢查Firebase是否開啟匿名登入");
+        
+        const nick = document.getElementById('nicknameInput').value.trim();
+        const pass = document.getElementById('adminPassword').value.trim();
+
+        if (selectedAdmin) {
+            if (pass !== adminPasswords[selectedAdmin]) return alert('密碼錯誤');
+            currentUser = { id: currentAuthUser.uid, nickname: selectedAdmin, isAdmin: true };
+        } else if (nick) {
+            currentUser = { id: currentAuthUser.uid, nickname: nick, isAdmin: false };
+        } else {
+            return alert('請輸入暱稱');
         }
 
-        function showLobby() {
-            document.getElementById('loginCard').classList.add('hidden');
-            document.getElementById('roomsSection').classList.remove('hidden');
-            document.getElementById('welcomeHeader').textContent = `歡迎 ${currentUser.nickname}`;
-            
-            if(currentUser.nickname === '吸鼠女') {
-                document.getElementById('statsSection').classList.remove('hidden');
-                loadStats();
-            }
-            listenRooms();
+        localStorage.setItem('ratChatUser', JSON.stringify(currentUser));
+        
+        // 登入後更新大廳狀態 (讓大廳顯示大老鼠)
+        initLobby(currentAuthUser.uid, currentUser.isAdmin);
+
+        // 統計
+        const visitRef = window.firebaseRef(window.firebaseDB, 'stats/totalVisits');
+        window.firebaseRunTransaction(visitRef, (v) => (v || 0) + 1);
+        if(currentUser.isAdmin) {
+            const admRef = window.firebaseRef(window.firebaseDB, `stats/adminLogins/${currentUser.nickname}`);
+            window.firebaseRunTransaction(admRef, (v) => (v || 0) + 1);
         }
 
-        function loadStats() {
-            window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'stats'), snap => {
-                const s = snap.val() || {};
-                document.getElementById('statsTotalVisits').textContent = s.totalVisits || 0;
-                document.getElementById('statsTotalRooms').textContent = s.totalRoomsCreated || 0;
-                
-                const admins = s.adminLogins || {};
-                let html = '';
-                Object.keys(adminPasswords).forEach(name => {
-                    html += `<div>${name}: ${admins[name] || 0} 次</div>`;
-                });
-                document.getElementById('statsAdminLogins').innerHTML = html;
+        showLobby();
+    }
+
+    function showLobby() {
+        document.getElementById('loginCard').classList.add('hidden');
+        document.getElementById('roomsSection').classList.remove('hidden');
+        document.getElementById('welcomeHeader').textContent = `歡迎 ${currentUser.nickname}`;
+        
+        if(currentUser.nickname === '吸鼠女') {
+            document.getElementById('statsSection').classList.remove('hidden');
+            loadStats();
+        }
+        listenRooms();
+    }
+
+    function loadStats() {
+        window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'stats'), snap => {
+            const s = snap.val() || {};
+            document.getElementById('statsTotalVisits').textContent = s.totalVisits || 0;
+            document.getElementById('statsTotalRooms').textContent = s.totalRoomsCreated || 0;
+            
+            const admins = s.adminLogins || {};
+            let html = '';
+            Object.keys(adminPasswords).forEach(name => {
+                html += `<div>${name}: ${admins[name] || 0} 次</div>`;
             });
+            document.getElementById('statsAdminLogins').innerHTML = html;
+        });
+    }
+
+    function listenRooms() {
+        window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'rooms'), snap => {
+            const data = snap.val() || {};
+            const grid = document.getElementById('roomsGrid');
+            grid.innerHTML = '';
+
+            renderRoomCard(grid, '溫溫鼠窩', data['溫溫鼠窩']);
+
+            const dynRooms = Object.keys(data).filter(k => k !== '溫溫鼠窩');
+            for(let i=0; i<3; i++) {
+                const name = dynRooms[i];
+                if(name) renderRoomCard(grid, name, data[name], true);
+                else renderEmptyCard(grid, i);
+            }
+        });
+    }
+
+    function renderRoomCard(container, name, data, isDynamic=false) {
+        const count = data?.online ? Object.keys(data.online).length : 0;
+        
+        if(isDynamic && count === 0) {
+            window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${name}`));
+            return;
         }
 
-        function listenRooms() {
-            window.firebaseOnValue(window.firebaseRef(window.firebaseDB, 'rooms'), snap => {
-                const data = snap.val() || {};
-                const grid = document.getElementById('roomsGrid');
-                grid.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = `room-item flex flex-col rounded-xl p-4 gap-3 ${count>0?'border-2 border-green-500':'border-2 border-gray-600'}`;
+        div.style.backgroundColor = 'var(--card-bg)';
+        
+        div.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span class="text-xl font-bold truncate">${name}</span>
+                <div class="room-lamp ${count>0?'on':''}"></div>
+            </div>
+            <div class="mt-auto">
+                <div class="room-status-text mb-2 ${count>0?'':'hidden'}">鼠窩有 ${count} 隻老鼠</div>
+                <button class="btn btn-primary w-full" onclick="enterRoom('${name}')">加入鼠窩</button>
+            </div>
+        `;
+        container.appendChild(div);
+    }
 
-                renderRoomCard(grid, '溫溫鼠窩', data['溫溫鼠窩']);
+    function renderEmptyCard(container, idx) {
+        const div = document.createElement('div');
+        div.className = "flex flex-col rounded-xl p-4 gap-3 border-2 border-gray-600";
+        div.style.backgroundColor = 'var(--card-bg)';
+        div.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span class="text-xl font-bold text-gray-400">鼠窩沒鼠</span>
+                <div class="room-lamp"></div>
+            </div>
+            <div class="mt-auto space-y-2">
+                <input id="newRoomName_${idx}" class="input-field text-sm" placeholder="輸入房名">
+                <button class="btn btn-primary w-full" onclick="createRoom(${idx})">創建鼠窩</button>
+            </div>
+        `;
+        container.appendChild(div);
+    }
 
-                const dynRooms = Object.keys(data).filter(k => k !== '溫溫鼠窩');
-                for(let i=0; i<3; i++) {
-                    const name = dynRooms[i];
-                    if(name) renderRoomCard(grid, name, data[name], true);
-                    else renderEmptyCard(grid, i);
-                }
-            });
+    window.createRoom = (idx) => {
+        const name = document.getElementById(`newRoomName_${idx}`).value.trim();
+        if(!name) return alert('請輸入名稱');
+        if(name === '溫溫鼠窩') return alert('名稱重複');
+        
+        const rRef = window.firebaseRef(window.firebaseDB, 'stats/totalRoomsCreated');
+        window.firebaseRunTransaction(rRef, (v) => (v || 0) + 1);
+        
+        enterRoom(name);
+    };
+
+    window.enterRoom = async (name) => {
+        currentRoom = name;
+        localStorage.setItem('ratChatRoom', name);
+
+        document.getElementById('mainContainer').classList.add('hidden');
+        document.getElementById('chatPage').classList.add('visible');
+        document.getElementById('currentRoomName').textContent = name;
+        document.getElementById('entryNotice').textContent = `歡迎 ${currentUser.nickname}`;
+
+        const headerBtns = document.getElementById('chatHeaderBtns');
+        headerBtns.querySelectorAll('.admin-tool').forEach(b => b.remove());
+
+        if(currentUser.isAdmin) {
+            const dlBtn = document.createElement('button');
+            dlBtn.className = 'p-2 admin-tool';
+            dlBtn.innerHTML = '📥'; 
+            dlBtn.onclick = downloadLogs;
+            headerBtns.prepend(dlBtn);
+
+            const clrBtn = document.createElement('button');
+            clrBtn.className = 'p-2 admin-tool text-red-400';
+            clrBtn.innerHTML = '🗑️'; 
+            clrBtn.onclick = clearChat;
+            headerBtns.prepend(clrBtn);
         }
 
-        function renderRoomCard(container, name, data, isDynamic=false) {
-            const count = data?.online ? Object.keys(data.online).length : 0;
-            
-            if(isDynamic && count === 0) {
+        const myRef = window.firebaseRef(window.firebaseDB, `rooms/${name}/online/${currentUser.id}`);
+        await window.firebaseSet(myRef, { name: currentUser.nickname });
+        window.firebaseOnDisconnect(myRef).remove();
+
+        const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${name}/online`);
+        listeners.online = window.firebaseOnValue(onlineRef, snap => {
+            const count = snap.numChildren();
+            document.getElementById('roomOnlineCount').textContent = `在線:${count}`;
+            if(count === 0 && name !== '溫溫鼠窩') {
                 window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${name}`));
-                return;
             }
+        });
 
-            const div = document.createElement('div');
-            div.className = `room-item flex flex-col rounded-xl p-4 gap-3 ${count>0?'border-2 border-green-500':'border-2 border-gray-600'}`;
-            div.style.backgroundColor = 'var(--card-bg)';
-            
-            div.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-bold truncate">${name}</span>
-                    <div class="room-lamp ${count>0?'on':''}"></div>
-                </div>
-                <div class="mt-auto">
-                    <div class="room-status-text mb-2 ${count>0?'':'hidden'}">鼠窩有 ${count} 隻老鼠</div>
-                    <button class="btn btn-primary w-full" onclick="enterRoom('${name}')">加入鼠窩</button>
-                </div>
-            `;
-            container.appendChild(div);
-        }
+        const msgRef = window.firebaseQuery(window.firebaseRef(window.firebaseDB, `rooms/${name}/messages`), window.firebaseOrderByChild('timestamp'));
+        listeners.msg = window.firebaseOnValue(msgRef, snap => {
+            const list = document.getElementById('messagesList');
+            list.innerHTML = '';
+            currentMessages = []; 
+            const now = Date.now();
 
-        function renderEmptyCard(container, idx) {
-            const div = document.createElement('div');
-            div.className = "flex flex-col rounded-xl p-4 gap-3 border-2 border-gray-600";
-            div.style.backgroundColor = 'var(--card-bg)';
-            div.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-bold text-gray-400">鼠窩沒鼠</span>
-                    <div class="room-lamp"></div>
-                </div>
-                <div class="mt-auto space-y-2">
-                    <input id="newRoomName_${idx}" class="input-field text-sm" placeholder="輸入房名">
-                    <button class="btn btn-primary w-full" onclick="createRoom(${idx})">創建鼠窩</button>
-                </div>
-            `;
-            container.appendChild(div);
-        }
-
-        window.createRoom = (idx) => {
-            const name = document.getElementById(`newRoomName_${idx}`).value.trim();
-            if(!name) return alert('請輸入名稱');
-            if(name === '溫溫鼠窩') return alert('名稱重複');
-            
-            const rRef = window.firebaseRef(window.firebaseDB, 'stats/totalRoomsCreated');
-            window.firebaseRunTransaction(rRef, (v) => (v || 0) + 1);
-            
-            enterRoom(name);
-        };
-
-        window.enterRoom = async (name) => {
-            currentRoom = name;
-            localStorage.setItem('ratChatRoom', name);
-
-            document.getElementById('mainContainer').classList.add('hidden');
-            document.getElementById('chatPage').classList.add('visible');
-            document.getElementById('currentRoomName').textContent = name;
-            document.getElementById('entryNotice').textContent = `歡迎 ${currentUser.nickname}`;
-
-            const headerBtns = document.getElementById('chatHeaderBtns');
-            headerBtns.querySelectorAll('.admin-tool').forEach(b => b.remove());
-
-            if(currentUser.isAdmin) {
-                const dlBtn = document.createElement('button');
-                dlBtn.className = 'p-2 admin-tool';
-                dlBtn.innerHTML = '📥'; 
-                dlBtn.onclick = downloadLogs;
-                headerBtns.prepend(dlBtn);
-
-                const clrBtn = document.createElement('button');
-                clrBtn.className = 'p-2 admin-tool text-red-400';
-                clrBtn.innerHTML = '🗑️'; 
-                clrBtn.onclick = clearChat;
-                headerBtns.prepend(clrBtn);
-            }
-
-            const myRef = window.firebaseRef(window.firebaseDB, `rooms/${name}/online/${currentUser.id}`);
-            await window.firebaseSet(myRef, { name: currentUser.nickname });
-            window.firebaseOnDisconnect(myRef).remove();
-
-            const onlineRef = window.firebaseRef(window.firebaseDB, `rooms/${name}/online`);
-            listeners.online = window.firebaseOnValue(onlineRef, snap => {
-                const count = snap.numChildren();
-                document.getElementById('roomOnlineCount').textContent = `在線：${count}`;
-                if(count === 0 && name !== '溫溫鼠窩') {
-                    window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${name}`));
+            snap.forEach(s => {
+                const m = s.val();
+                if(now - m.timestamp > 3600000) {
+                    window.firebaseRemove(s.ref);
+                    return;
                 }
+                currentMessages.push(m);
+                renderMessage(list, m);
             });
+            document.getElementById('messagesContainer').scrollTop = 99999;
+        });
+    };
 
-            const msgRef = window.firebaseQuery(window.firebaseRef(window.firebaseDB, `rooms/${name}/messages`), window.firebaseOrderByChild('timestamp'));
-            listeners.msg = window.firebaseOnValue(msgRef, snap => {
-                const list = document.getElementById('messagesList');
-                list.innerHTML = '';
-                currentMessages = []; 
-                const now = Date.now();
-
-                snap.forEach(s => {
-                    const m = s.val();
-                    if(now - m.timestamp > 3600000) {
-                        window.firebaseRemove(s.ref);
-                        return;
-                    }
-                    currentMessages.push(m);
-                    renderMessage(list, m);
-                });
-                document.getElementById('messagesContainer').scrollTop = 99999;
-            });
-        };
-
-        function renderMessage(list, m) {
-            const isMe = m.userId === currentUser.id;
-            const div = document.createElement('div');
-            div.className = `flex flex-col ${isMe?'items-end':'items-start'}`;
-            
-            let content = '';
-            if(m.text) content += `<div class="p-3 rounded-2xl mb-1 max-w-xs break-words ${isMe?'bg-gray-500 text-white':'bg-gray-700 text-gray-200'}">${m.text}</div>`;
-            if(m.images) {
-                content += `<div class="flex gap-1 mt-1">`;
-                m.images.forEach(src => content += `<img src="${src}" class="rounded-lg max-h-32 cursor-pointer" onclick="window.open('${src}')">`);
-                content += `</div>`;
-            }
-
-            div.innerHTML = `
-                <span class="text-xs text-gray-400 mb-1">${m.isAdmin?'👑 ':''}${m.nickname}</span>
-                ${content}
-            `;
-            list.appendChild(div);
+    function renderMessage(list, m) {
+        const isMe = m.userId === currentUser.id;
+        const div = document.createElement('div');
+        div.className = `flex flex-col ${isMe?'items-end':'items-start'}`;
+        
+        let content = '';
+        if(m.text) content += `<div class="p-3 rounded-2xl mb-1 max-w-xs break-words ${isMe?'bg-gray-500 text-white':'bg-gray-700 text-gray-200'}">${m.text}</div>`;
+        if(m.images) {
+            content += `<div class="flex gap-1 mt-1">`;
+            m.images.forEach(src => content += `<img src="${src}" class="rounded-lg max-h-32 cursor-pointer" onclick="window.open('${src}')">`);
+            content += `</div>`;
         }
 
-        window.sendMessage = async () => {
-            const txt = document.getElementById('messageInput').value.trim();
-            if(!txt && pendingImages.length===0) return;
+        div.innerHTML = `
+            <span class="text-xs text-gray-400 mb-1">${m.isAdmin?'👑 ':''}${m.nickname}</span>
+            ${content}
+        `;
+        list.appendChild(div);
+    }
 
-            const data = {
-                userId: currentUser.id,
-                nickname: currentUser.nickname,
-                isAdmin: currentUser.isAdmin,
-                text: txt,
-                images: pendingImages.length? pendingImages : null,
-                timestamp: window.firebaseServerTimestamp()
+    window.sendMessage = async () => {
+        const txt = document.getElementById('messageInput').value.trim();
+        if(!txt && pendingImages.length===0) return;
+
+        const data = {
+            userId: currentUser.id,
+            nickname: currentUser.nickname,
+            isAdmin: currentUser.isAdmin,
+            text: txt,
+            images: pendingImages.length? pendingImages : null,
+            timestamp: window.firebaseServerTimestamp()
+        };
+
+        await window.firebasePush(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`), data);
+        
+        document.getElementById('messageInput').value = '';
+        pendingImages = [];
+        document.getElementById('imagePreviewContainer').innerHTML = '';
+    };
+
+    window.handleImageSelection = (e) => {
+        const files = Array.from(e.target.files);
+        if(files.length + pendingImages.length > 5) return alert('最多5張');
+        
+        files.forEach(f => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                pendingImages.push(ev.target.result);
+                const img = document.createElement('img');
+                img.src = ev.target.result;
+                img.className = 'preview-image flex-shrink-0';
+                document.getElementById('imagePreviewContainer').appendChild(img);
             };
+            reader.readAsDataURL(f);
+        });
+    };
 
-            await window.firebasePush(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`), data);
-            
-            document.getElementById('messageInput').value = '';
-            pendingImages = [];
-            document.getElementById('imagePreviewContainer').innerHTML = '';
-        };
+    window.backToRooms = () => {
+        if(listeners.online) listeners.online();
+        if(listeners.msg) listeners.msg();
+        
+        const myRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
+        window.firebaseRemove(myRef);
 
-        window.handleImageSelection = (e) => {
-            const files = Array.from(e.target.files);
-            if(files.length + pendingImages.length > 5) return alert('最多5張');
-            
-            files.forEach(f => {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    pendingImages.push(ev.target.result);
-                    const img = document.createElement('img');
-                    img.src = ev.target.result;
-                    img.className = 'preview-image flex-shrink-0';
-                    document.getElementById('imagePreviewContainer').appendChild(img);
-                };
-                reader.readAsDataURL(f);
-            });
-        };
+        document.getElementById('chatPage').classList.remove('visible');
+        document.getElementById('mainContainer').classList.remove('hidden');
+        currentRoom = null;
+        localStorage.removeItem('ratChatRoom');
+    };
 
-        window.backToRooms = () => {
-            if(listeners.online) listeners.online();
-            if(listeners.msg) listeners.msg();
-            
-            const myRef = window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/online/${currentUser.id}`);
-            window.firebaseRemove(myRef);
+    window.logout = () => {
+        if(!confirm('登出?')) return;
+        localStorage.clear();
+        location.reload();
+    };
 
-            document.getElementById('chatPage').classList.remove('visible');
-            document.getElementById('mainContainer').classList.remove('hidden');
-            currentRoom = null;
-            localStorage.removeItem('ratChatRoom');
-        };
+    window.clearChat = async () => {
+        if(!confirm('確定清空對話?')) return;
+        await window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`));
+    };
 
-        window.logout = () => {
-            if(!confirm('登出？')) return;
-            localStorage.clear();
-            location.reload();
-        };
+    window.downloadLogs = () => {
+        if(currentMessages.length === 0) return alert("沒有對話紀錄");
+        
+        let content = `=== ${currentRoom} 對話紀錄 ===\n下載時間: ${new Date().toLocaleString()}\n\n`;
+        
+        currentMessages.forEach(m => {
+            const time = new Date(m.timestamp).toLocaleTimeString();
+            const name = m.nickname;
+            const text = m.text || "[圖片]";
+            content += `[${time}] ${name}: ${text}\n`;
+        });
 
-        window.clearChat = async () => {
-            if(!confirm('確定清空對話？')) return;
-            await window.firebaseRemove(window.firebaseRef(window.firebaseDB, `rooms/${currentRoom}/messages`));
-        };
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${currentRoom}_log_${Date.now()}.txt`;
+        a.click();
+    };
 
-        window.downloadLogs = () => {
-            if(currentMessages.length === 0) return alert("沒有對話紀錄");
-            
-            let content = `=== ${currentRoom} 對話紀錄 ===\n下載時間: ${new Date().toLocaleString()}\n\n`;
-            
-            currentMessages.forEach(m => {
-                const time = new Date(m.timestamp).toLocaleTimeString();
-                const name = m.nickname;
-                const text = m.text || "[圖片]";
-                content += `[${time}] ${name}: ${text}\n`;
-            });
+    window.handleKeyPress = (e) => {
+        if(e.key === 'Enter') window.sendMessage();
+    };
+</script>
+```
 
-            const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `${currentRoom}_log_${Date.now()}.txt`;
-            a.click();
-        };
-
-        window.handleKeyPress = (e) => {
-            if(e.key === 'Enter') window.sendMessage();
-        };
-    </script>
 </body>
 </html>
-
-
